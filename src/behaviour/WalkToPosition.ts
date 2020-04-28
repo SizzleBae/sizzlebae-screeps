@@ -3,7 +3,7 @@ import { Blackboard } from "./Blackboard";
 
 export class WalkToPosition extends BTNode {
 
-	constructor(public options?: MoveToOpts) {
+	constructor(public options?: MoveToOpts, public positionAlias: string = 'position') {
 		super();
 
 	}
@@ -16,16 +16,17 @@ export class WalkToPosition extends BTNode {
 			return BTResult.FAILURE;
 		}
 
-		const position = blackboard.position;
+		const position = blackboard.getTarget<RoomPosition>(this.positionAlias);
 		if (!position) {
 			console.log('Failed to run WalkToPosition: Missing position')
 			return BTResult.FAILURE;
 		}
 
-		let range = 1;
-		if (this.options?.range) {
-			range += this.options.range;
+		let range = 0;
+		if (this.options && this.options.range) {
+			range = this.options.range;
 		}
+
 		if (blackboard.agent.pos.getRangeTo(position) <= range) {
 			return BTResult.SUCCESS;
 		}

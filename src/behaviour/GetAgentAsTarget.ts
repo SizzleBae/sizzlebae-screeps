@@ -1,8 +1,8 @@
 import { BTNode, BTResult } from "./BTNode";
 import { Blackboard } from "./Blackboard";
 
-export class GetAgentRoom extends BTNode {
-	constructor(public alias: string = 'target') {
+export class GetAgentAsTarget extends BTNode {
+	constructor(public targetAlias: string = 'target') {
 		super();
 	}
 
@@ -11,7 +11,7 @@ export class GetAgentRoom extends BTNode {
 	}
 
 	run(blackboard: Blackboard): BTResult {
-		blackboard.targets[this.alias] = blackboard.agent.room;
+		blackboard.setTarget(this.targetAlias, blackboard.agent);
 		return BTResult.SUCCESS;
 	}
 }

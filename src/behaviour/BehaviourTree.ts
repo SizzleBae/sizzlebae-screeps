@@ -7,9 +7,9 @@ export class BehaviourTree {
 
 	constructor(public root: BTNode) { }
 
-	tick(agent: Creep): BTResult {
+	tick(agent: Creep | StructureTower): BTResult {
 		if (!this.blackboard) {
-			this.blackboard = { agent, stacks: {}, targets: {} };
+			this.blackboard = new Blackboard(agent);
 		}
 
 		this.blackboard.agent = agent;

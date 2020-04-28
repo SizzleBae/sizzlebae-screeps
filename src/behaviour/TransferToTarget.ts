@@ -5,7 +5,7 @@ export class TransferToTarget extends BTNode {
 
 	transferredCount: number = 0;
 
-	constructor(public type: ResourceConstant, public alias: string = 'target', public amount?: number) {
+	constructor(public type: ResourceConstant, public targetAlias: string = 'target', public amount?: number) {
 		super();
 	}
 
@@ -18,7 +18,7 @@ export class TransferToTarget extends BTNode {
 			return BTResult.FAILURE;
 		}
 
-		const target = blackboard.targets[this.alias];
+		const target = blackboard.getTarget<Creep | PowerCreep | Structure<StructureConstant>>(this.targetAlias);
 		if (!target) {
 			console.log('Failed to init TransferToTarget: Missing target')
 			return BTResult.FAILURE;
@@ -26,9 +26,9 @@ export class TransferToTarget extends BTNode {
 
 		const oldCount = blackboard.agent.store[this.type];
 
-		const remaining = this.amount ? this.amount - this.transferredCount : oldCount;
+		const remaining = this.amount ? this.amount - this.transferredCount : undefined;
 
-		const result = blackboard.agent.transfer(target as any, this.type, remaining);
+		const result = blackboard.agent.transfer(target, this.type, remaining);
 		const newCount = blackboard.agent.store[this.type];
 
 		const change = newCount - oldCount;
@@ -38,10 +38,13 @@ export class TransferToTarget extends BTNode {
 		if (result === OK) {
 			if (!this.amount || this.transferredCount < this.amount) {
 				return BTResult.RUNNING;
+			} else {
+				return BTResult.SUCCESS;
 			}
+		}
 
+		if (result === ERR_FULL) {
 			return BTResult.SUCCESS;
-
 		} else {
 			return BTResult.FAILURE;
 		}

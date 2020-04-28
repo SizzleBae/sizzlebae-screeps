@@ -1,7 +1,7 @@
 import { BTNode, BTResult } from "./BTNode";
 import { Blackboard } from "./Blackboard";
 
-export class UpgradeController extends BTNode {
+export class BuildTarget extends BTNode {
 
 	constructor(public targetAlias: string = 'target') {
 		super();
@@ -15,13 +15,13 @@ export class UpgradeController extends BTNode {
 			return BTResult.FAILURE;
 		}
 
-		const target = blackboard.getTarget<StructureController>(this.targetAlias);
+		const target = blackboard.getTarget<ConstructionSite<BuildableStructureConstant>>(this.targetAlias);
 		if (!target) {
-			console.log('Failed to init UpgradeController: Missing target')
+			console.log('Failed to run BuildTarget: Missing target')
 			return BTResult.FAILURE;
 		}
 
-		const result = blackboard.agent.upgradeController(target);
+		const result = blackboard.agent.build(target);
 
 		if (result === OK) {
 			if (blackboard.agent.store.energy > 0) {

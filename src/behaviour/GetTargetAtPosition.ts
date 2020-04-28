@@ -3,7 +3,7 @@ import { Blackboard } from "./Blackboard";
 
 export class GetTargetAtPosition extends BTNode {
 	constructor(public type: "constructionSite" | "creep" | "energy" | "exit" | "flag" | "mineral" | "deposit" | "nuke" | "resource" | "source" | "structure" | "terrain" | "tombstone" | "powerCreep" | "ruin"
-		, public alias: string = 'target') {
+		, public targetAlias: string = 'target', public positionAlias: string = 'position') {
 		super();
 	}
 
@@ -11,13 +11,13 @@ export class GetTargetAtPosition extends BTNode {
 	}
 
 	run(blackboard: Blackboard): BTResult {
-		const position = blackboard.position;
+		const position = blackboard.getTarget<RoomPosition>(this.positionAlias);
 		if (!position) {
 			console.log('Failed to init GetTargetAtPosition: Missing position')
 			return BTResult.FAILURE;
 		}
 
-		blackboard.targets[this.alias] = Game.rooms[position.roomName].lookForAt(this.type, position)[0];
+		blackboard.setTarget(this.targetAlias, Game.rooms[position.roomName].lookForAt(this.type, position)[0]);
 		return BTResult.SUCCESS;
 	}
 }

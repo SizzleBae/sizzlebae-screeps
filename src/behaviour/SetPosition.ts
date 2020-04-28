@@ -3,7 +3,7 @@ import { Blackboard } from "./Blackboard";
 
 export class SetPosition extends BTNode {
 
-	constructor(public position: RoomPosition) {
+	constructor(public position: RoomPosition, public positionAlias: string = 'position') {
 		super();
 
 	}
@@ -12,7 +12,7 @@ export class SetPosition extends BTNode {
 	}
 
 	run(blackboard: Blackboard): BTResult {
-		blackboard.position = this.position;
+		blackboard.setTarget(this.positionAlias, this.position);
 		return BTResult.SUCCESS;
 	}
 

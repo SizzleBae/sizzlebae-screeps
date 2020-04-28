@@ -3,7 +3,7 @@ import { Blackboard } from "./Blackboard";
 
 export class HarvestTarget extends BTNode {
 
-	constructor(public alias: string = 'target') {
+	constructor(public targetAlias: string = 'target') {
 		super();
 	}
 
@@ -20,13 +20,13 @@ export class HarvestTarget extends BTNode {
 			return BTResult.SUCCESS;
 		}
 
-		const target = blackboard.targets[this.alias];
+		const target = blackboard.getTarget<Source | Mineral<MineralConstant> | Deposit>(this.targetAlias);
 		if (!target) {
 			console.log('Failed to run HarvestTarget: Missing target')
 			return BTResult.FAILURE;
 		}
 
-		const result = blackboard.agent.harvest(target as any);
+		const result = blackboard.agent.harvest(target);
 		if (result === OK) {
 			return BTResult.RUNNING;
 		}
