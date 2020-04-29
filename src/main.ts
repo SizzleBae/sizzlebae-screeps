@@ -1,7 +1,7 @@
 import { ErrorMapper } from 'utils/ErrorMapper';
 import { BehaviourTree } from 'behaviour/BehaviourTree';
 import { Sequence } from 'behaviour/Sequence';
-import { SetPositionFromFlag } from 'behaviour/SetPositionFromFlag';
+import { SetPositionFromFlag as GetPositionFromFlag } from 'behaviour/GetPositionFromFlag';
 import { WalkToPosition } from 'behaviour/WalkToPosition';
 import { GetTargetAtPosition } from 'behaviour/GetTargetAtPosition';
 import { HarvestTarget } from 'behaviour/HarvestTarget';
@@ -9,15 +9,18 @@ import { TransferToTarget } from 'behaviour/TransferToTarget';
 import { GetTargetRoom } from 'behaviour/GetTargetRoom';
 import { FindStackInRoom } from 'behaviour/FindStackInRoom';
 import { RepeatUntilFail } from 'behaviour/RepeatUntilFail';
-import { PopStack } from 'behaviour/PopStack';
+import { PopStack as PopStackToTarget } from 'behaviour/PopStackToTarget';
 import { GetTargetPosition } from 'behaviour/GetTargetPosition';
 import { BuildTarget } from 'behaviour/BuildTarget';
 import { GetAgentAsTarget } from 'behaviour/GetAgentAsTarget';
 import { SortStackClosestFirst } from 'behaviour/SortStackClosestFirst';
 import { Selector } from 'behaviour/Selector';
 import { UpgradeController } from 'behaviour/UpgradeController';
-import { HasRemainingCapacity } from 'behaviour/HasRemainingCapacity';
+import { HasFreeCapacity } from 'behaviour/HasFreeCapacity';
 import { Inverter } from 'behaviour/Inverter';
+import { PickUpTarget } from 'behaviour/PickUpTarget';
+import { DropStore } from 'behaviour/DropStore';
+import { HasUsedCapacity } from 'behaviour/HasUsedCapacity';
 
 export type ColonyStructure = Record<string,
 	Record<string, {
@@ -29,9 +32,10 @@ export type ColonyStructure = Record<string,
 const BTUpgrade = () => {
 	return new Sequence([
 		new GetAgentAsTarget(),
+		new HasUsedCapacity('energy'),
 		new GetTargetRoom(),
 		new FindStackInRoom(FIND_MY_STRUCTURES, { filter: structure => structure.structureType === 'controller' }),
-		new PopStack(),
+		new PopStackToTarget(),
 		new GetTargetPosition(),
 		new WalkToPosition({ range: 3 }),
 		new UpgradeController()
@@ -40,13 +44,16 @@ const BTUpgrade = () => {
 
 const BTConstruct = () => {
 	return new Sequence([
-		new GetAgentAsTarget(),
-		new GetTargetRoom(),
+		new GetAgentAsTarget('agent'),
+		new HasUsedCapacity('energy', 'agent'),
+		new GetTargetRoom('room', 'agent'),
 		new FindStackInRoom(FIND_CONSTRUCTION_SITES),
-		new SortStackClosestFirst(),
+		new SortStackClosestFirst('agent'),
 		new RepeatUntilFail(
 			new Sequence([
-				new PopStack(),
+				new PopStackToTarget('energyContainer'),
+				new HasUsedCapacity('energy', 'agent'),
+				new PopStackToTarget(),
 				new GetTargetPosition(),
 				new WalkToPosition({ range: 3 }),
 				new BuildTarget()
@@ -57,20 +64,22 @@ const BTConstruct = () => {
 
 const BTDeliverSpawnEnergy = () => {
 	return new Sequence([
-		new SetPositionFromFlag('Spawn1'),
+		new GetAgentAsTarget('agent'),
+		new HasUsedCapacity('energy', 'agent'),
+		new GetPositionFromFlag('Spawn1'),
 		new GetTargetAtPosition('structure'),
 		new GetTargetRoom(),
 		new FindStackInRoom(FIND_MY_STRUCTURES, { filter: structure => structure.structureType === 'spawn' || structure.structureType === 'extension' }),
-		new SortStackClosestFirst(),
+		new SortStackClosestFirst('agent'),
 		new RepeatUntilFail(
 			new Sequence([
-				new PopStack(),
+				new PopStackToTarget('energyContainer'),
 				new Selector([
-					new Inverter(new HasRemainingCapacity('energy')),
+					new Inverter(new HasFreeCapacity('energy', 'energyContainer')),
 					new Sequence([
-						new GetTargetPosition(),
+						new GetTargetPosition('energyContainer'),
 						new WalkToPosition({ range: 1 }),
-						new TransferToTarget('energy')
+						new TransferToTarget('energy', 'energyContainer')
 					])
 				])
 			])
@@ -82,10 +91,10 @@ const BTHarvest = (sourceFlag: string) => {
 	return new Selector([
 		new Sequence([
 			new GetAgentAsTarget(),
-			new Inverter(new HasRemainingCapacity('energy'))
+			new Inverter(new HasFreeCapacity('energy'))
 		]),
 		new Sequence([
-			new SetPositionFromFlag(sourceFlag),
+			new GetPositionFromFlag(sourceFlag),
 			new WalkToPosition({ range: 1 }),
 			new GetTargetAtPosition('source'),
 			new HarvestTarget(),
@@ -95,245 +104,12 @@ const BTHarvest = (sourceFlag: string) => {
 
 const structure: ColonyStructure = {
 	Spawn1: {
-		dylan: {
-			body: ['carry', 'move', 'move', 'move', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source3'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		gard: {
-			body: ['carry', 'move', 'move', 'move', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source3'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		bard: {
-			body: ['carry', 'move', 'move', 'move', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source3'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		tard: {
-			body: ['carry', 'move', 'move', 'move', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source3'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		god: {
-			body: ['carry', 'move', 'move', 'move', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source3'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		bob: {
-			body: ['carry', 'move', 'move', 'move', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source3'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		kun: {
-			body: ['carry', 'move', 'move', 'move', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source3'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		jhon: {
-			body: ['carry', 'move', 'move', 'move', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source3'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		eddy: {
-			body: ['carry', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source2'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		hector: {
-			body: ['carry', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source2'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		lars: {
-			body: ['carry', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source2'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		chris: {
-			body: ['carry', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source2'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		chan: {
-			body: ['carry', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source2'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		jackie: {
-			body: ['carry', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source2'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		larry: {
-			body: ['carry', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source2'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		omar: {
-			body: ['carry', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source2'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		ornn: {
-			body: ['carry', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source2'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
+
 		ashe: {
-			body: ['carry', 'move', 'move', 'work', 'work', 'work'],
+			body: ['carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
 			behaviour: new BehaviourTree(
 				new Sequence([
 					BTHarvest('Source2'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		oppa: {
-			body: ['carry', 'move', 'work', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTHarvest('Source1'),
 					new Sequence([
 						BTDeliverSpawnEnergy(),
 						BTConstruct(),
@@ -343,7 +119,98 @@ const structure: ColonyStructure = {
 			)
 		},
 		lamar: {
-			body: ['carry', 'move', 'work', 'work', 'work', 'work'],
+			body: ['carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
+			behaviour: new BehaviourTree(
+				new Sequence([
+					BTHarvest('Source2'),
+					new Sequence([
+						BTDeliverSpawnEnergy(),
+						BTConstruct(),
+						BTUpgrade()
+					])
+				])
+			)
+		},
+		victor: {
+			body: ['carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
+			behaviour: new BehaviourTree(
+				new Sequence([
+					BTHarvest('Source2'),
+					new Sequence([
+						BTDeliverSpawnEnergy(),
+						BTConstruct(),
+						BTUpgrade()
+					])
+				])
+			)
+		},
+		tard: {
+			body: ['carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
+			behaviour: new BehaviourTree(
+				new Sequence([
+					BTHarvest('Source2'),
+					new Sequence([
+						BTDeliverSpawnEnergy(),
+						BTConstruct(),
+						BTUpgrade()
+					])
+				])
+			)
+		},
+		ron: {
+			body: ['carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
+			behaviour: new BehaviourTree(
+				new Sequence([
+					BTHarvest('Source2'),
+					new Sequence([
+						BTDeliverSpawnEnergy(),
+						BTConstruct(),
+						BTUpgrade()
+					])
+				])
+			)
+		},
+		easy: {
+			body: ['carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
+			behaviour: new BehaviourTree(
+				new Sequence([
+					BTHarvest('Source2'),
+					new Sequence([
+						BTDeliverSpawnEnergy(),
+						BTConstruct(),
+						BTUpgrade()
+					])
+				])
+			)
+		},
+		hard: {
+			body: ['carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
+			behaviour: new BehaviourTree(
+				new Sequence([
+					BTHarvest('Source2'),
+					new Sequence([
+						BTDeliverSpawnEnergy(),
+						BTConstruct(),
+						BTUpgrade()
+					])
+				])
+			)
+		},
+		don: {
+			body: ['carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
+			behaviour: new BehaviourTree(
+				new Sequence([
+					BTHarvest('Source2'),
+					new Sequence([
+						BTDeliverSpawnEnergy(),
+						BTConstruct(),
+						BTUpgrade()
+					])
+				])
+			)
+		},
+		ned: {
+			body: ['carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
 			behaviour: new BehaviourTree(
 				new Sequence([
 					BTHarvest('Source1'),
@@ -355,8 +222,8 @@ const structure: ColonyStructure = {
 				])
 			)
 		},
-		victor: {
-			body: ['carry', 'move', 'work', 'work', 'work', 'work'],
+		com: {
+			body: ['carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
 			behaviour: new BehaviourTree(
 				new Sequence([
 					BTHarvest('Source1'),
@@ -367,7 +234,38 @@ const structure: ColonyStructure = {
 					])
 				])
 			)
-		}
+		},
+		// krud: {
+		// 	body: ['carry', 'move', 'carry', 'move', 'carry', 'carry', 'carry', 'carry', 'move', 'move', 'move', 'move'],
+		// 	behaviour: new BehaviourTree(
+		// 		new Sequence([
+		// 			new GetAgentAsTarget('agent'),
+		// 			new GetTargetRoom('room', 'agent'),
+		// 			new FindStackInRoom(FIND_DROPPED_RESOURCES, undefined, 'allDropped', 'room'),
+		// 			new RepeatUntilFail(
+		// 				new Sequence([
+		// 					new HasRemainingCapacity('energy'),
+		// 					new PopStackToTarget('dropped', 'allDropped'),
+		// 					new GetTargetPosition('dropped'),
+		// 					new WalkToPosition({ range: 1 }),
+		// 					new PickUpTarget('dropped'),
+		// 				])
+		// 			),
+		// 			new Sequence([
+		// 				BTDeliverSpawnEnergy()
+		// 			])
+		// 		])
+		// 	)
+		// },
+		// stud: {
+		// 	body: ['carry', 'move', 'work', 'work', 'work', 'work', 'work', 'work'],
+		// 	behaviour: new BehaviourTree(
+		// 		new Sequence([
+		// 			BTHarvest('Source1'),
+		// 			new DropStore('energy')
+		// 		])
+		// 	)
+		// }
 	}
 }
 

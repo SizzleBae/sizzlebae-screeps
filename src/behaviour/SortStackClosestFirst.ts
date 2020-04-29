@@ -21,7 +21,8 @@ export class SortStackClosestFirst extends BTNode {
 			return BTResult.FAILURE;
 		}
 
-		blackboard.setStack(this.stackAlias, stack.sort((a, b) => target.pos.getRangeTo(b) - target.pos.getRangeTo(a)));
+		const sorted = stack.sort((a, b) => target.pos.getRangeTo(b) - target.pos.getRangeTo(a));
+		blackboard.setStack(this.stackAlias, sorted);
 
 		return BTResult.SUCCESS;
 	}
