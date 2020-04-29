@@ -1,9 +1,11 @@
+export type Agent = Creep | StructureTower;
+
 export class Blackboard {
 
 	private targets: Record<string, any> = {};
 	private stacks: Record<string, any[]> = {};
 
-	constructor(public agent: Creep | StructureTower) {
+	constructor(public agent: Agent) {
 
 	}
 

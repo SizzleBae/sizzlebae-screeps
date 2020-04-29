@@ -21,6 +21,7 @@ import { Inverter } from 'behaviour/Inverter';
 import { PickUpTarget } from 'behaviour/PickUpTarget';
 import { DropStore } from 'behaviour/DropStore';
 import { HasUsedCapacity } from 'behaviour/HasUsedCapacity';
+import { Logger, LogVerbosity } from 'utils/Log';
 
 export type ColonyStructure = Record<string,
 	Record<string, {
@@ -271,6 +272,11 @@ const structure: ColonyStructure = {
 
 export const loop = ErrorMapper.wrapLoop(() => {
 	// console.log(`Current game tick is ${Game.time}`);
+	Logger.verbosity = LogVerbosity.DEBUG;
+
+	// Logger.behaviour.setAgentsFilter([Game.creeps.com]);
+
+	Logger.printTickStart();
 
 	for (const [spawnName, spawnData] of Object.entries(structure)) {
 		for (const [creepName, creepData] of Object.entries(spawnData)) {

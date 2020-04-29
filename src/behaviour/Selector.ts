@@ -1,5 +1,6 @@
 import { BTNode, BTResult } from "./BTNode";
 import { Blackboard } from "./Blackboard";
+import { Logger } from "utils/Log";
 
 export class Selector extends BTNode {
 	currentIndex: number = 0;
@@ -25,6 +26,7 @@ export class Selector extends BTNode {
 			}
 
 			const result = currentChild.run(blackboard);
+			Logger.behaviour.printExecutionResult(currentChild, result, blackboard);
 
 			if (result !== BTResult.RUNNING) {
 				this.childInit = false;

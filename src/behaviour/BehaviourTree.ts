@@ -1,5 +1,7 @@
 import { Blackboard } from "./Blackboard";
-import { BTResult, BTNode } from "./BTNode";
+import { BTResult, BTNode, BTNodeComposite, BTNodeDecorator } from "./BTNode";
+import { Logger } from "utils/Log";
+import { DebugDecorator } from "./DebugDecorator";
 
 export class BehaviourTree {
 	blackboard?: Blackboard;
@@ -22,4 +24,20 @@ export class BehaviourTree {
 		return this.lastResult;
 	}
 
+	debug(): this {
+		this.convertNodeToDebug(this.root);
+
+		return this;
+	}
+
+	convertNodeToDebug(node: BTNode) {
+		if (node instanceof BTNodeComposite) {
+			node.children.forEach(child => this.convertNodeToDebug(child));
+			node.children = node.children.map(child => new DebugDecorator(child));
+		}
+		else if (node instanceof BTNodeDecorator) {
+			this.convertNodeToDebug(node);
+			node.child = new DebugDecorator(node);
+		}
+	}
 }
