@@ -1,9 +1,9 @@
-import { BTNode, BTResult } from "./BTNode";
+import { BTNode, BTResult, BTNodeDecorator } from "./BTNode";
 import { Blackboard } from "./Blackboard";
 
-export class Inverter extends BTNode {
-	constructor(public child: BTNode) {
-		super();
+export class Inverter extends BTNodeDecorator {
+	constructor(child: BTNode) {
+		super(child);
 	}
 
 	init(blackboard: Blackboard): void {

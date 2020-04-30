@@ -1,5 +1,6 @@
-import { BTResult, BTNode } from "behaviour/BTNode";
+import { BTResult, BTNode, BTNodeComposite, BTNodeDecorator } from "behaviour/BTNode";
 import { Blackboard, Agent } from "behaviour/Blackboard";
+import { DebugDecorator } from "behaviour/DebugDecorator";
 
 export enum LogVerbosity {
 	MESSAGE, WARNING, ERROR, DEBUG
@@ -11,13 +12,24 @@ export interface Log {
 export class BehaviorLog implements Log {
 	private agentsIdFilter: string[] = [];
 
-	setAgentsFilter(agentsFilter: Agent[]) {
-		this.agentsIdFilter = agentsFilter.map(agent => agent.id);
+	private indentLevel = 0;
+
+	beginNode(node: DebugDecorator) {
+		const indent = Array(this.indentLevel).fill('| ').join('');
+
+		if (node.child instanceof BTNodeComposite || node.child instanceof BTNodeDecorator) {
+			Logger.print(`${indent}${node.child.constructor.name}`, LogVerbosity.DEBUG);
+			this.indentLevel++;
+		}
 	}
 
-	printExecutionResult(node: BTNode, result: BTResult, blackboard: Blackboard) {
-		if (this.agentsIdFilter.some(id => id === blackboard.agent.id))
-			Logger.print(`Agent ${this.agentToString(blackboard.agent)} executed ${node.constructor.name} with result ${this.resultToString(result)}.`, LogVerbosity.DEBUG);
+	endNode(node: DebugDecorator, result: BTResult) {
+		if (node.child instanceof BTNodeComposite || node.child instanceof BTNodeDecorator) {
+			this.indentLevel--;
+		}
+
+		const indent = Array(this.indentLevel).fill('| ').join('');
+		Logger.print(`${indent}${node.child.constructor.name} - ${this.resultToString(result).toUpperCase()}`, LogVerbosity.DEBUG);
 	}
 
 	agentToString(agent: Agent): string {
@@ -34,9 +46,9 @@ export class BehaviorLog implements Log {
 		switch (result) {
 			case BTResult.FAILURE:
 				return 'failure'
-			case BTResult.RUNNING:
-				return 'success'
 			case BTResult.SUCCESS:
+				return 'success'
+			case BTResult.RUNNING:
 				return 'running'
 		}
 	}

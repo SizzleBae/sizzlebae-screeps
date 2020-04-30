@@ -1,11 +1,11 @@
-import { BTNode, BTResult } from "./BTNode";
+import { BTNode, BTResult, BTNodeDecorator } from "./BTNode";
 import { Blackboard } from "./Blackboard";
 
-export class RepeatUntilFail extends BTNode {
+export class RepeatUntilFail extends BTNodeDecorator {
 	childInit = false;
 
-	constructor(public child: BTNode) {
-		super();
+	constructor(child: BTNode) {
+		super(child);
 	}
 
 	init(blackboard: Blackboard): void {

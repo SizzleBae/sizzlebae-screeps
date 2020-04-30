@@ -1,7 +1,7 @@
 import { BTNode, BTResult } from "./BTNode";
 import { Blackboard } from "./Blackboard";
 
-export class PopStack extends BTNode {
+export class PopStackToTarget extends BTNode {
 	constructor(public targetAlias: string = 'target', public stackAlias: string = 'stack') {
 		super();
 	}
