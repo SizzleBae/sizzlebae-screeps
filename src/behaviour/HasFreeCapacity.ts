@@ -2,7 +2,7 @@ import { BTNode, BTResult } from "./BTNode";
 import { Blackboard } from "./Blackboard";
 
 export class HasFreeCapacity extends BTNode {
-	constructor(public type: ResourceConstant, public targetAlias: string = 'target') {
+	constructor(public targetAlias: string, public type?: ResourceConstant) {
 		super();
 	}
 

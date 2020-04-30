@@ -24,6 +24,10 @@ import { HasUsedCapacity } from 'behaviour/HasUsedCapacity';
 import { Logger, LogVerbosity } from 'utils/Log';
 import { WithdrawFromTarget } from 'behaviour/WithdrawFromTarget';
 import { RepairTarget } from 'behaviour/RepairTarget';
+import { GetTargetId } from 'behaviour/GetTargetId';
+import { GetTargetFromId } from 'behaviour/GetTargetFromId';
+import { SortStackWithTarget } from 'behaviour/SortStackWithTarget';
+import { TargetCondition } from 'behaviour/TargetCondition';
 
 export type ColonyStructure = Record<string,
 	Record<string, {
@@ -54,7 +58,7 @@ const BTConstruct = () => {
 		new RepeatUntilFail(
 			new Sequence([
 				new PopStackToTarget('energyContainer'),
-				new HasUsedCapacity('energy', 'agent'),
+				new HasUsedCapacity('agent', 'energy'),
 				new GetTargetPosition('energyContainer'),
 				new WalkToPosition({ range: 3 }),
 				new BuildTarget('energyContainer')
@@ -71,11 +75,15 @@ const BTMaintain = () => {
 		new SortStackClosestFirst('agent', 'maintainables'),
 		new RepeatUntilFail(
 			new Sequence([
-				new HasUsedCapacity('energy', 'agent'),
+				new HasUsedCapacity('agent', 'energy'),
 				new PopStackToTarget('maintainable', 'maintainables'),
 				new GetTargetPosition('maintainable'),
 				new WalkToPosition({ range: 3 }),
-				new RepairTarget('maintainable')
+				new RepeatUntilFail(new Sequence([
+					new GetTargetId('maintainable', 'id'),
+					new GetTargetFromId('id', 'maintainable'),
+					new RepairTarget('maintainable')
+				]))
 			])
 		)
 	])
@@ -84,7 +92,7 @@ const BTMaintain = () => {
 const BTDeliverSpawnEnergy = () => {
 	return new Sequence([
 		new GetAgentAsTarget('agent'),
-		new HasUsedCapacity('energy', 'agent'),
+		new HasUsedCapacity('agent', 'energy'),
 		new GetTargetRoom('room', 'agent'),
 		new FindStackInRoom(FIND_MY_STRUCTURES, { filter: structure => structure.structureType === 'spawn' || structure.structureType === 'extension' }, 'stack', 'room'),
 		new SortStackClosestFirst('agent', 'stack'),
@@ -92,7 +100,7 @@ const BTDeliverSpawnEnergy = () => {
 			new Sequence([
 				new PopStackToTarget('energyContainer'),
 				new Selector([
-					new Inverter(new HasFreeCapacity('energy', 'energyContainer')),
+					new Inverter(new HasFreeCapacity('energyContainer', 'energy')),
 					new Sequence([
 						new GetTargetPosition('energyContainer'),
 						new WalkToPosition({ range: 1 }),
@@ -104,22 +112,71 @@ const BTDeliverSpawnEnergy = () => {
 	])
 }
 
-const BTWithdrawFromContainers = (type: ResourceConstant) => {
+const BTWithdrawFromStructures = (roomAlias: string, structureTypes: (_Constructor<Structure<StructureConstant>>)[], resourceType: ResourceConstant) => {
 	return new Sequence([
 		new GetAgentAsTarget('agent'),
-		new GetTargetRoom('room', 'agent'),
-		new FindStackInRoom(FIND_STRUCTURES, { filter: structure => structure instanceof StructureContainer || structure instanceof StructureStorage }, 'containers', 'room'),
+		new FindStackInRoom(FIND_STRUCTURES, { filter: structure => structureTypes.some(type => structure instanceof (type as Function)) }, 'containers', roomAlias),
 		new SortStackClosestFirst('agent', 'containers'),
-		new RepeatUntilFail(
-			new Sequence([
-				new HasFreeCapacity(type, 'agent'),
-				new PopStackToTarget('container', 'containers'),
-				new HasUsedCapacity(type, 'container'),
+		new RepeatUntilFail(new Sequence([
+			new HasFreeCapacity('agent', resourceType),
+			new PopStackToTarget('container', 'containers'),
+			new Inverter(new Sequence([
+				new HasUsedCapacity('container', resourceType),
 				new GetTargetPosition('container'),
 				new WalkToPosition({ range: 1 }),
-				new WithdrawFromTarget(type, 'container')
-			])
-		),
+				new WithdrawFromTarget(resourceType, 'container')
+			]))
+		])),
+	]);
+};
+
+const BTTranferToStructures = (roomAlias: string, structureTypes: (_Constructor<Structure<StructureConstant>>)[], resourceType: ResourceConstant) => {
+	return new Sequence([
+		new GetAgentAsTarget('agent'),
+		new GetTargetRoom(roomAlias, 'agent'),
+		new FindStackInRoom(FIND_STRUCTURES, { filter: structure => structureTypes.some(type => structure instanceof (type as Function)) }, 'containers', roomAlias),
+		new SortStackClosestFirst('agent', 'containers'),
+		new RepeatUntilFail(new Sequence([
+			new HasUsedCapacity('agent', resourceType),
+			new PopStackToTarget('container', 'containers'),
+			new Inverter(new Sequence([
+				new HasFreeCapacity('container', resourceType),
+				new GetTargetPosition('container'),
+				new WalkToPosition({ range: 1 }),
+				new TransferToTarget(resourceType, 'container')
+			]))
+		])),
+	])
+}
+
+const BTPickupDrops = (roomAlias: string, resourceTypes?: ResourceConstant[]) => {
+	return new Sequence([
+		new GetAgentAsTarget('agent'),
+		new GetTargetRoom(roomAlias, 'agent'),
+		new FindStackInRoom(FIND_DROPPED_RESOURCES, { filter: dropped => resourceTypes ? resourceTypes.includes(dropped.resourceType) : true }, 'allDropped', roomAlias),
+		new SortStackClosestFirst('agent', 'allDropped'),
+		new RepeatUntilFail(new Sequence([
+			new HasFreeCapacity('agent'),
+			new PopStackToTarget('dropped', 'allDropped'),
+			new GetTargetPosition('dropped'),
+			new WalkToPosition({ range: 1 }),
+			new PickUpTarget('dropped'),
+		])),
+	])
+}
+
+const BTHarvestThenDrop = (sourceFlag: string) => {
+	return new Selector([
+		new Sequence([
+			new GetAgentAsTarget(),
+			new GetPositionFromFlag(sourceFlag),
+			new WalkToPosition({ range: 1 }),
+			new GetTargetAtPosition('source', 'harvestable'),
+			new RepeatUntilFail(new Sequence([
+				new HarvestTarget('harvestable'),
+				new DropStore('energy')
+			]))
+		])
 	])
 }
 
@@ -132,194 +189,111 @@ const BTHarvest = (sourceFlag: string) => {
 		new Sequence([
 			new GetPositionFromFlag(sourceFlag),
 			new WalkToPosition({ range: 1 }),
-			new GetTargetAtPosition('source'),
-			new HarvestTarget(),
+			new GetTargetAtPosition('source', 'harvestable'),
+			new RepeatUntilFail(new Sequence([
+				new HarvestTarget('harvestable'),
+			]))
 		])
 	])
 }
 
-const structure: ColonyStructure = {
+const structure = {
 	Spawn1: {
-		don: {
-			body: ['carry', 'carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTWithdrawFromContainers('energy'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTMaintain(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		ron: {
-			body: ['carry', 'carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTWithdrawFromContainers('energy'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTUpgrade(),
-						BTConstruct()
-					])
-				])
-			)
-		},
 		easy: {
-			body: ['carry', 'carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
+			body: ['move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'work', 'work', 'move', 'work', 'work'],
+			behaviour: new BehaviourTree(new Sequence([
+				new GetAgentAsTarget('agent'),
+				new GetTargetRoom('room', 'agent'),
+				BTWithdrawFromStructures('room', [StructureStorage], 'energy'),
 				new Sequence([
-					BTWithdrawFromContainers('energy'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTMaintain(),
-						BTConstruct(),
-						BTUpgrade()
-					])
+					BTConstruct(),
+					BTUpgrade()
 				])
-			)
-		},
-		asd: {
-			body: ['carry', 'carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTWithdrawFromContainers('energy'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTMaintain(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		wasf: {
-			body: ['carry', 'carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTWithdrawFromContainers('energy'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTMaintain(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
+			])),
+			spawnMe: true
 		},
 		ddss: {
-			body: ['carry', 'carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
+			body: ['move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'work', 'work', 'move', 'work', 'work'],
+			behaviour: new BehaviourTree(new Sequence([
+				new GetAgentAsTarget('agent'),
+				new GetTargetRoom('room', 'agent'),
+				BTWithdrawFromStructures('room', [StructureStorage], 'energy'),
 				new Sequence([
-					BTWithdrawFromContainers('energy'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTMaintain(),
-						BTConstruct(),
-						BTUpgrade()
-					])
+					BTConstruct(),
+					BTUpgrade()
 				])
-			)
-		},
-		hard: {
-			body: ['carry', 'carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTWithdrawFromContainers('energy'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTMaintain(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
+			])),
+			spawnMe: true
 		},
 		ned: {
-			body: ['carry', 'carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTWithdrawFromContainers('energy'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTMaintain(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		com: {
-			body: ['carry', 'carry', 'carry', 'move', 'move', 'move', 'work', 'work', 'work'],
-			behaviour: new BehaviourTree(
-				new Sequence([
-					BTWithdrawFromContainers('energy'),
-					new Sequence([
-						BTDeliverSpawnEnergy(),
-						BTMaintain(),
-						BTConstruct(),
-						BTUpgrade()
-					])
-				])
-			)
-		},
-		krud: {
-			body: ['carry', 'move', 'carry', 'move', 'carry', 'move', 'carry', 'move', 'carry', 'move', 'carry', 'move', 'carry', 'move', 'carry', 'move'],
+			body: ['move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'carry', 'work'],
 			behaviour: new BehaviourTree(
 				new Sequence([
 					new GetAgentAsTarget('agent'),
 					new GetTargetRoom('room', 'agent'),
-					new FindStackInRoom(FIND_DROPPED_RESOURCES, undefined, 'allDropped', 'room'),
-					new SortStackClosestFirst('agent', 'allDropped'),
-					new RepeatUntilFail(
-						new Sequence([
-							new HasFreeCapacity('energy', 'agent'),
-							new PopStackToTarget('dropped', 'allDropped'),
-							new GetTargetPosition('dropped'),
-							new WalkToPosition({ range: 1 }),
-							new PickUpTarget('dropped'),
-						])
-					),
+					BTWithdrawFromStructures('room', [StructureStorage], 'energy'),
 					new Sequence([
-						new GetAgentAsTarget('agent'),
-						new GetTargetRoom('room', 'agent'),
-						new FindStackInRoom(FIND_STRUCTURES, { filter: structure => structure instanceof StructureContainer || structure instanceof StructureStorage }, 'containers', 'room'),
-						new SortStackClosestFirst('agent', 'containers'),
-						new RepeatUntilFail(
-							new Sequence([
-								new HasUsedCapacity('energy', 'agent'),
-								new PopStackToTarget('container', 'containers'),
-								new GetTargetPosition('container'),
-								new WalkToPosition({ range: 1 }),
-								new TransferToTarget('energy', 'container')
-							])
-						)
+						BTDeliverSpawnEnergy(),
+						BTMaintain(),
+						BTConstruct(),
+						BTUpgrade()
 					])
+				])),
+			spawnMe: true
+		},
+		com: {
+			body: ['move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'carry', 'work'],
+			behaviour: new BehaviourTree(new Sequence([
+				new GetAgentAsTarget('agent'),
+				new GetTargetRoom('room', 'agent'),
+				BTWithdrawFromStructures('room', [StructureStorage], 'energy'),
+				new Sequence([
+					BTDeliverSpawnEnergy(),
+					BTMaintain(),
+					BTConstruct(),
+					BTUpgrade()
 				])
-			)
+			])),
+			spawnMe: true
+		},
+		krud: {
+			body: ['carry', 'carry', 'move', 'carry', 'carry', 'move', 'carry', 'carry', 'move', 'carry', 'carry', 'move', 'carry', 'carry', 'move', 'carry', 'carry', 'move'],
+			behaviour: new BehaviourTree(new Sequence([
+				new GetAgentAsTarget('agent'),
+				new GetTargetRoom('room', 'agent'),
+				BTPickupDrops('room'),
+				BTWithdrawFromStructures('room', [StructureContainer], 'energy'),
+				BTTranferToStructures('room', [StructureStorage], 'energy')
+			])),
+			spawnMe: true
+		},
+		krudII: {
+			body: ['carry', 'carry', 'move', 'carry', 'carry', 'move', 'carry', 'carry', 'move', 'carry', 'carry', 'move', 'carry', 'carry', 'move', 'carry', 'carry', 'move'],
+			behaviour: new BehaviourTree(new Sequence([
+				new GetAgentAsTarget('agent'),
+				new GetTargetRoom('room', 'agent'),
+				BTPickupDrops('room'),
+				BTWithdrawFromStructures('room', [StructureContainer], 'energy'),
+				BTTranferToStructures('room', [StructureStorage], 'energy')
+			])),
+			spawnMe: true
 		},
 		tard: {
-			body: ['carry', 'carry', 'move', 'work', 'work', 'work', 'work', 'work', 'work'],
+			body: ['carry', 'move', 'work', 'work', 'work', 'work', 'work', 'work'],
 			behaviour: new BehaviourTree(
-				new Selector([
-					new Inverter(new DropStore('energy')),
-					BTHarvest('Source2')
-				])
-			)
+				BTHarvestThenDrop('Source2')
+			).debug(),
+			spawnMe: true
 		},
 		stud: {
-			body: ['carry', 'carry', 'move', 'work', 'work', 'work', 'work', 'work', 'work'],
+			body: ['carry', 'move', 'work', 'work', 'work', 'work', 'work', 'work'],
 			behaviour: new BehaviourTree(
-				new Selector([
-					new Inverter(new DropStore('energy')),
-					BTHarvest('Source1')
-				])
-			)
+				BTHarvestThenDrop('Source1')
+			),
+			spawnMe: true
 		}
 	}
-}
+};
 
 export const loop = ErrorMapper.wrapLoop(() => {
 	// console.log(`Current game tick is ${Game.time}`);
@@ -334,8 +308,8 @@ export const loop = ErrorMapper.wrapLoop(() => {
 			const creep = Game.creeps[creepName];
 			if (creep) {
 				creepData.behaviour.tick(creep);
-			} else {
-				Game.spawns[spawnName].spawnCreep(creepData.body, creepName);
+			} else if (creepData.spawnMe) {
+				Game.spawns[spawnName].spawnCreep(creepData.body as BodyPartConstant[], creepName);
 
 			}
 		}

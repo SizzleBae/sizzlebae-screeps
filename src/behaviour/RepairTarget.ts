@@ -3,11 +3,14 @@ import { Blackboard } from "./Blackboard";
 
 export class RepairTarget extends BTNode {
 
+	private hasRun: boolean = false;
+
 	constructor(public targetAlias: string) {
 		super();
 	}
 
 	init(blackboard: Blackboard): void {
+		this.hasRun = false;
 	}
 
 	run(blackboard: Blackboard): BTResult {
@@ -17,14 +20,16 @@ export class RepairTarget extends BTNode {
 			return BTResult.FAILURE;
 		}
 
-		const result = blackboard.agent.repair(target);
+		const result = this.hasRun ? OK : blackboard.agent.repair(target);
 
-		if (result === OK) {
-			return BTResult.SUCCESS;
-			// if (target.hits < target.hitsMax) {
-			// } else {
-			// 	return BTResult.FAILURE;
-			// }
+		if (result === OK && target.hits < target.hitsMax) {
+			if (this.hasRun) {
+				this.hasRun = false;
+				return BTResult.SUCCESS;
+			} else {
+				this.hasRun = true;
+				return BTResult.RUNNING;
+			}
 		} else {
 			return BTResult.FAILURE;
 		}

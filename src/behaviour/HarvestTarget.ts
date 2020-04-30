@@ -3,6 +3,8 @@ import { Blackboard } from "./Blackboard";
 
 export class HarvestTarget extends BTNode {
 
+	private hasRun: boolean = false;
+
 	constructor(public targetAlias: string = 'target') {
 		super();
 	}
@@ -17,21 +19,28 @@ export class HarvestTarget extends BTNode {
 		}
 
 		if (blackboard.agent.store.getFreeCapacity() === 0) {
-			return BTResult.SUCCESS;
+			return BTResult.FAILURE;
 		}
 
 		const target = blackboard.getTarget<Source | Mineral<MineralConstant> | Deposit>(this.targetAlias);
 		if (!target) {
-			console.log('Failed to run HarvestTarget: Missing target')
 			return BTResult.FAILURE;
 		}
 
-		const result = blackboard.agent.harvest(target);
+		const result = this.hasRun ? OK : blackboard.agent.harvest(target);
+
 		if (result === OK) {
-			return BTResult.RUNNING;
+			if (this.hasRun) {
+				this.hasRun = false;
+				return BTResult.SUCCESS;
+			} else {
+				this.hasRun = true;
+				return BTResult.RUNNING;
+			}
+		} else {
+			return BTResult.FAILURE;
 		}
 
-		return BTResult.FAILURE;
 	}
 
 }
