@@ -16,10 +16,12 @@ export class HasFreeCapacity extends BTNode {
 			return BTResult.FAILURE;
 		}
 
-		if (target.store.getFreeCapacity(this.type) === 0) {
-			return BTResult.FAILURE;
+		const test = Game.getObjectById((target as any).id as string);
+
+		if ((test as any).store.getFreeCapacity(this.type) > 0) {
+			return BTResult.SUCCESS;
 		}
 
-		return BTResult.SUCCESS;
+		return BTResult.FAILURE;
 	}
 }

@@ -2,7 +2,7 @@ import { BTNode, BTResult } from "./BTNode";
 import { Blackboard } from "./Blackboard";
 
 export class GetAgentAsTarget extends BTNode {
-	constructor(public targetAlias: string = 'target') {
+	constructor(public targetAlias: string) {
 		super();
 	}
 

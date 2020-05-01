@@ -1,3 +1,5 @@
+import { Logger, LogVerbosity } from "utils/Log";
+
 export type Agent = Creep | StructureTower;
 
 export class Blackboard {
@@ -18,10 +20,16 @@ export class Blackboard {
 	}
 
 	getTarget<T>(targetAlias: string): T | undefined {
+		if (!this.targets[targetAlias]) {
+			Logger.print(`Attempted to use target variable in blackboard that does not exits: ${targetAlias}`, LogVerbosity.WARNING);
+		}
 		return this.targets[targetAlias];
 	}
 
 	getStack<T>(stackAlias: string): T[] | undefined {
+		if (!this.stacks[stackAlias]) {
+			Logger.print(`Attempted to use stack variable in blackboard that does not exits: ${stackAlias}`, LogVerbosity.WARNING);
+		}
 		return this.stacks[stackAlias];
 	}
 

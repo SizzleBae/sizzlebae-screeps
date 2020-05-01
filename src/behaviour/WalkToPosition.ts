@@ -3,12 +3,39 @@ import { Blackboard } from "./Blackboard";
 
 export class WalkToPosition extends BTNode {
 
-	constructor(public options?: MoveToOpts, public positionAlias: string = 'position') {
+	public options: MoveToOpts;
+
+	private initialPath: PathStep[] | undefined;
+
+	constructor(options?: MoveToOpts, public positionAlias: string = 'position') {
 		super();
 
+		if (options) {
+			this.options = options;
+		} else {
+			this.options = {};
+		}
+
+		if (!this.options.plainCost) {
+			this.options.plainCost = 5;
+		}
+		if (!this.options.swampCost) {
+			this.options.swampCost = 10;
+		}
 	}
 
 	init(blackboard: Blackboard): void {
+		if (!(blackboard.agent instanceof Creep)) {
+			return;
+		}
+
+		const position = blackboard.getTarget<RoomPosition>(this.positionAlias);
+		if (!position) {
+			return;
+		}
+
+		const options = Object.assign<MoveToOpts, MoveToOpts>({ ignoreCreeps: true }, this.options)
+		this.initialPath = blackboard.agent.room.findPath(blackboard.agent.pos, position, options)
 	}
 
 	run(blackboard: Blackboard): BTResult {
@@ -18,9 +45,9 @@ export class WalkToPosition extends BTNode {
 
 		const position = blackboard.getTarget<RoomPosition>(this.positionAlias);
 		if (!position) {
-			console.log('Failed to run WalkToPosition: Missing position')
 			return BTResult.FAILURE;
 		}
+
 
 		let range = 0;
 		if (this.options && this.options.range) {
