@@ -3,14 +3,11 @@ import { Blackboard } from "./Blackboard";
 
 export class WithdrawFromTarget extends BTNode {
 
-	// transferredCount: number = 0;
-
 	constructor(public type: ResourceConstant, public targetAlias: string, public amount?: number) {
 		super();
 	}
 
 	init(blackboard: Blackboard): void {
-		// this.transferredCount = 0;
 	}
 
 	run(blackboard: Blackboard): BTResult {
@@ -23,21 +20,20 @@ export class WithdrawFromTarget extends BTNode {
 			return BTResult.FAILURE;
 		}
 
-		// const oldCount = blackboard.agent.store[this.type];
+		// const result = blackboard.agent.withdraw(target, this.type, this.amount);
 
-		// const remaining = this.amount ? this.amount  : undefined;
-
+		// if (result === OK || ERR_FULL) {
+		// 	return BTResult.SUCCESS;
+		// } else {
+		// 	return BTResult.FAILURE;
+		// }
 		const result = blackboard.agent.withdraw(target, this.type, this.amount);
-		// const newCount = blackboard.agent.store[this.type];
 
-		// const change = newCount - oldCount;
-
-		// this.transferredCount += change;
-
-		if (result === OK || ERR_FULL) {
+		if (result === OK) {
 			return BTResult.SUCCESS;
 		} else {
 			return BTResult.FAILURE;
 		}
+
 	}
 }

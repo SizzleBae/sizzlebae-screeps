@@ -3,14 +3,11 @@ import { Blackboard } from "./Blackboard";
 
 export class HarvestTarget extends BTNode {
 
-	private hasRun: boolean = false;
-
 	constructor(public targetAlias: string = 'target') {
 		super();
 	}
 
 	init(blackboard: Blackboard): void {
-
 	}
 
 	run(blackboard: Blackboard): BTResult {
@@ -27,16 +24,10 @@ export class HarvestTarget extends BTNode {
 			return BTResult.FAILURE;
 		}
 
-		const result = this.hasRun ? OK : blackboard.agent.harvest(target);
+		const result = blackboard.agent.harvest(target);
 
 		if (result === OK) {
-			if (this.hasRun) {
-				this.hasRun = false;
-				return BTResult.SUCCESS;
-			} else {
-				this.hasRun = true;
-				return BTResult.RUNNING;
-			}
+			return BTResult.SUCCESS;
 		} else {
 			return BTResult.FAILURE;
 		}

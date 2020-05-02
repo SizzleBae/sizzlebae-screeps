@@ -7,7 +7,7 @@ export class WalkToPosition extends BTNode {
 
 	private initialPath: PathStep[] | undefined;
 
-	constructor(options?: MoveToOpts, public positionAlias: string = 'position') {
+	constructor(public positionAlias: string = 'position', options?: MoveToOpts, ) {
 		super();
 
 		if (options) {

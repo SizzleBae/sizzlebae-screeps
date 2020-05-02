@@ -9,7 +9,7 @@ import { TransferToTarget } from 'behaviour/TransferToTarget';
 import { GetTargetRoom } from 'behaviour/GetTargetRoom';
 import { FindStackInRoom } from 'behaviour/FindStackInRoom';
 import { RepeatUntilFail } from 'behaviour/RepeatUntilFail';
-import { PopStackToTarget as PopStackToTarget } from 'behaviour/PopStackToTarget';
+import { PopStackToTarget } from 'behaviour/PopStackToTarget';
 import { GetTargetPosition } from 'behaviour/GetTargetPosition';
 import { BuildTarget } from 'behaviour/BuildTarget';
 import { GetAgentAsTarget } from 'behaviour/GetAgentAsTarget';
@@ -29,9 +29,13 @@ import { GetTargetFromId } from 'behaviour/GetTargetFromId';
 import { SortStackWithTarget } from 'behaviour/SortStackWithTarget';
 import { TargetCondition } from 'behaviour/TargetCondition';
 import { AlwaysSucceed } from 'behaviour/AlwaysSucceed';
-import { Wait } from 'behaviour/Wait';
-import { GetRoom } from 'behaviour/GetRoom';
 import { AttackTarget } from 'behaviour/AttackTarget';
+import { GetRoom } from 'behaviour/GetRoom';
+// import { WalkTowardsPosition } from 'behaviour/WalkTowardsPosition';
+import { Wait } from 'behaviour/Wait';
+import { SetPosition } from 'behaviour/SetPosition';
+import { RefreshTarget } from 'behaviour/RefreshTarget';
+import { IsTargetInRange } from 'behaviour/IsTargetInRange';
 
 export type ColonyStructure = Record<string,
 	Record<string, {
@@ -53,103 +57,22 @@ const BTUpgrade = () => {
 	])
 }
 
-const BTConstruct = () => {
+const BTConstruct = (roomAlias: string) => {
 	return new Sequence([
-		new GetAgentAsTarget('agent'),
-		new GetTargetRoom('room', 'agent'),
-		new FindStackInRoom(FIND_CONSTRUCTION_SITES, undefined, 'stack', 'room'),
-		new SortStackClosestFirst('agent', 'stack'),
+		new FindStackInRoom(FIND_CONSTRUCTION_SITES, undefined, 'sites', roomAlias),
 		new RepeatUntilFail(
 			new Sequence([
-				new PopStackToTarget('energyContainer'),
+				new GetAgentAsTarget('agent'),
 				new HasUsedCapacity('agent', 'energy'),
-				new GetTargetPosition('energyContainer'),
-				new WalkToPosition('position', { range: 3 }),
-				new BuildTarget('energyContainer')
-			])
-		)
-	])
-}
-
-const BTMaintain = () => {
-	return new Sequence([
-		new GetAgentAsTarget('agent'),
-		new GetTargetRoom('room', 'agent'),
-		new FindStackInRoom(FIND_STRUCTURES, { filter: structure => structure.hits < structure.hitsMax && !(structure instanceof StructureWall) }, 'maintainables', 'room'),
-		new SortStackClosestFirst('agent', 'maintainables'),
-		new RepeatUntilFail(
-			new Sequence([
-				new HasUsedCapacity('agent', 'energy'),
-				new PopStackToTarget('maintainable', 'maintainables'),
-				new GetTargetPosition('maintainable'),
-				new WalkToPosition('position', { range: 3 }),
-				new RepeatUntilFail(new Sequence([
-					new GetTargetId('maintainable', 'id'),
-					new GetTargetFromId('id', 'maintainable'),
-					new RepairTarget('maintainable')
+				new SortStackClosestFirst('agent', 'sites'),
+				new PopStackToTarget('site', 'sites'),
+				new AlwaysSucceed(new Sequence([
+					new GetTargetPosition('site'),
+					new WalkToPosition('position', { range: 3 }),
+					new BuildTarget('site')
 				]))
 			])
 		)
-	])
-}
-
-const BTDeliverSpawnEnergy = () => {
-	return new Sequence([
-		new GetAgentAsTarget('agent'),
-		new HasUsedCapacity('agent', 'energy'),
-		new GetTargetRoom('room', 'agent'),
-		new FindStackInRoom(FIND_MY_STRUCTURES, { filter: structure => structure.structureType === 'spawn' || structure.structureType === 'extension' }, 'stack', 'room'),
-		new SortStackClosestFirst('agent', 'stack'),
-		new RepeatUntilFail(
-			new Sequence([
-				new PopStackToTarget('energyContainer'),
-				new Selector([
-					new Inverter(new HasFreeCapacity('energyContainer', 'energy')),
-					new Sequence([
-						new GetTargetPosition('energyContainer'),
-						new WalkToPosition('position', { range: 1 }),
-						new TransferToTarget('energy', 'energyContainer')
-					])
-				])
-			])
-		)
-	])
-}
-
-const BTWithdrawFromStructures = (roomAlias: string, structureTypes: (_Constructor<Structure<StructureConstant>>)[], resourceType: ResourceConstant) => {
-	return new Sequence([
-		new GetAgentAsTarget('agent'),
-		new FindStackInRoom(FIND_STRUCTURES, { filter: structure => structureTypes.some(type => structure instanceof (type as Function)) }, 'containers', roomAlias),
-		new SortStackWithTarget<{ store: Store<ResourceConstant, false> }, Creep>((a, b, agent) => a.store.getUsedCapacity(resourceType) - b.store.getUsedCapacity(resourceType), 'containers', 'agent'),
-		new RepeatUntilFail(new Sequence([
-			new GetAgentAsTarget('agent'),
-			new HasFreeCapacity('agent', resourceType),
-			new PopStackToTarget('container', 'containers'),
-			new AlwaysSucceed(new Sequence([
-				new HasUsedCapacity('container', resourceType),
-				new GetTargetPosition('container'),
-				new WalkToPosition('position', { range: 1 }),
-				new WithdrawFromTarget(resourceType, 'container')
-			]))
-		])),
-	]);
-};
-
-const BTTranferToStructures = (roomAlias: string, structureTypes: (_Constructor<Structure<StructureConstant>>)[], resourceType: ResourceConstant) => {
-	return new Sequence([
-		new FindStackInRoom(FIND_STRUCTURES, { filter: structure => structureTypes.some(type => structure instanceof (type as Function)) }, 'containers', roomAlias),
-		new SortStackClosestFirst('agent', 'containers'),
-		new RepeatUntilFail(new Sequence([
-			new GetAgentAsTarget('agent'),
-			new HasUsedCapacity('agent', resourceType),
-			new PopStackToTarget('container', 'containers'),
-			new AlwaysSucceed(new Sequence([
-				new HasFreeCapacity('container', resourceType),
-				new GetTargetPosition('container'),
-				new WalkToPosition('position', { range: 1 }),
-				new TransferToTarget(resourceType, 'container')
-			]))
-		])),
 	])
 }
 
@@ -179,6 +102,53 @@ const BTRepairStructures = (roomAlias: string, structureTypes: (_Constructor<Str
 	])
 }
 
+const BTWithdrawFromStructures = (roomAlias: string, structureTypes: (_Constructor<Structure<StructureConstant>>)[], resourceType: ResourceConstant) => {
+	return new Sequence([
+		new GetAgentAsTarget('agent'),
+		new FindStackInRoom(FIND_STRUCTURES, { filter: structure => structureTypes.some(type => structure instanceof (type as Function)) }, 'containers', roomAlias),
+		new SortStackWithTarget<{ store: Store<ResourceConstant, false> }, Creep>((a, b, agent) => a.store.getUsedCapacity(resourceType) - b.store.getUsedCapacity(resourceType), 'containers', 'agent'),
+		new RepeatUntilFail(new Sequence([
+			new GetAgentAsTarget('agent'),
+			new PopStackToTarget('container', 'containers'),
+			new SortStackClosestFirst('agent', 'containers'),
+			new AlwaysSucceed(new Sequence([
+				new GetTargetPosition('container'),
+				new RepeatUntilFail(new Sequence([
+					new RefreshTarget('agent'),
+					new HasFreeCapacity('agent', resourceType),
+					new RefreshTarget('container'),
+					new HasUsedCapacity('container', resourceType),
+					new WalkToPosition('position', { range: 1 }),
+					// new WalkTowardsPosition('position', { range: 1 }),
+					// new Inverter(new IsTargetInRange('agent', 'position', 1)),
+					new Wait(1)
+				])),
+				new WithdrawFromTarget(resourceType, 'container')
+			]))
+		])),
+	]);
+};
+
+const BTTranferToStructures = (roomAlias: string, structureTypes: (_Constructor<Structure<StructureConstant>>)[], resourceType: ResourceConstant) => {
+	return new Sequence([
+		new FindStackInRoom(FIND_STRUCTURES, { filter: structure => structureTypes.some(type => structure instanceof (type as Function)) }, 'containers', roomAlias),
+		new RepeatUntilFail(new Sequence([
+			new GetAgentAsTarget('agent'),
+			new SortStackClosestFirst('agent', 'containers'),
+			new PopStackToTarget('container', 'containers'),
+			new GetTargetPosition('container', 'position'),
+			new RepeatUntilFail(new Sequence([
+				new WalkToPosition('position', { range: 1 }),
+				new RefreshTarget('agent'),
+				new HasUsedCapacity('agent', resourceType),
+				new RefreshTarget('container'),
+				new HasFreeCapacity('container', resourceType),
+				new TransferToTarget(resourceType, 'container'),
+			]))
+		])),
+	])
+}
+
 const BTPickupDrops = (roomAlias: string, resourceTypes?: ResourceConstant[]) => {
 	return new Sequence([
 		new GetAgentAsTarget('agent'),
@@ -197,8 +167,8 @@ const BTPickupDrops = (roomAlias: string, resourceTypes?: ResourceConstant[]) =>
 
 const BTHarvestThenDrop = (sourceFlag: string) => {
 	return new Sequence([
-		new GetPositionFromFlag(sourceFlag, 'position'),
-		new WalkToPosition('position', { range: 1 }),
+		new GetPositionFromFlag(sourceFlag),
+		BTWalkTo('position', { range: 1 }),
 		new GetTargetAtPosition('source', 'harvestable'),
 		new GetAgentAsTarget('agent'),
 		new GetTargetRoom('room', 'agent'),
@@ -215,6 +185,14 @@ const BTHarvestThenDrop = (sourceFlag: string) => {
 		]))
 	])
 }
+
+const BTWalkTo = (positionAlias: string, options: FindPathOpts) =>
+	new WalkToPosition('position', { range: 1 })
+// new RepeatUntilFail(new Sequence([
+// 	new GetAgentAsTarget('agent'),
+// 	new Inverter(new IsTargetInRange('agent', positionAlias, options.range ? options.range : 0)),
+// 	new Wait(1)
+// ]))
 
 const BTHarvest = (sourceFlag: string) => {
 	return new Selector([
@@ -233,31 +211,21 @@ const BTHarvest = (sourceFlag: string) => {
 	])
 }
 
-const structure = {
+const structure: Record<string, Record<string, { body: string[], behaviour: BehaviourTree, spawnMe: boolean }>> = {
 	Spawn1: {
-		easy: {
+		ddss: {
 			body: ['work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'carry', 'carry', 'carry', 'move'],
 			behaviour: new BehaviourTree(new Sequence([
-				new GetAgentAsTarget('agent'),
-				new GetTargetRoom('room', 'agent'),
+				new GetRoom('E33N38', 'room'),
 				BTWithdrawFromStructures('room', [StructureStorage], 'energy'),
-				new Sequence([
-					BTConstruct(),
-					BTUpgrade()
-				])
-			])),
-			spawnMe: false
-		},
-		ddss: {
-			body: ['move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'work', 'work', 'move', 'work', 'work'],
-			behaviour: new BehaviourTree(new Sequence([
-				new GetAgentAsTarget('agent'),
-				new GetTargetRoom('room', 'agent'),
-				BTWithdrawFromStructures('room', [StructureStorage], 'energy'),
-				new Sequence([
-					BTConstruct(),
-					BTUpgrade()
-				])
+				new GetPositionFromFlag('Upgrader1', 'position'),
+				new WalkToPosition('position', { range: 0 }),
+				new FindStackInRoom(FIND_MY_STRUCTURES, { filter: structure => structure instanceof StructureController }, 'controllers', 'room'),
+				new PopStackToTarget('controller', 'controllers'),
+				new RepeatUntilFail(new Sequence([
+					new UpgradeController('controller'),
+					new Wait(1)
+				]))
 			])),
 			spawnMe: true
 		},
@@ -283,33 +251,51 @@ const structure = {
 			body: ['work', 'carry', 'move', 'work', 'carry', 'move', 'work', 'carry', 'move', 'work', 'carry', 'move', 'work', 'carry', 'move'],
 			behaviour: new BehaviourTree(
 				new Sequence([
-					new GetAgentAsTarget('agent'),
-					new GetTargetRoom('room', 'agent'),
+					new GetRoom('E33N38', 'room'),
 					BTWithdrawFromStructures('room', [StructureStorage], 'energy'),
 					new Sequence([
 						BTTranferToStructures('room', [StructureExtension, StructureSpawn], 'energy'),
 						BTTranferToStructures('room', [StructureTower], 'energy'),
-						BTConstruct(),
-						BTRepairStructures('room', [StructureRoad, StructureWall, StructureRampart, StructureContainer]),
+						new GetRoom('E32N38', 'room'),
+						BTConstruct('room'),
+						BTRepairStructures('room', [StructureRoad, StructureContainer, StructureRampart, StructureWall]),
+						new GetRoom('E33N38', 'room'),
+						BTConstruct('room'),
+						BTRepairStructures('room', [StructureRoad, StructureContainer, StructureRampart, StructureWall]),
 						BTUpgrade()
 					])
-				])),
+				])).debug(),
 			spawnMe: true
 		},
 		com: {
 			body: ['work', 'carry', 'move', 'work', 'carry', 'move', 'work', 'carry', 'move', 'work', 'carry', 'move', 'work', 'carry', 'move'],
-			behaviour: new BehaviourTree(new Sequence([
-				new GetAgentAsTarget('agent'),
-				new GetTargetRoom('room', 'agent'),
-				BTWithdrawFromStructures('room', [StructureStorage], 'energy'),
+			behaviour: new BehaviourTree(
 				new Sequence([
-					BTTranferToStructures('room', [StructureExtension, StructureSpawn], 'energy'),
-					BTTranferToStructures('room', [StructureTower], 'energy'),
-					BTConstruct(),
-					BTRepairStructures('room', [StructureRoad, StructureWall, StructureRampart, StructureContainer]),
-					BTUpgrade()
-				])
-			])),
+					new GetRoom('E33N38', 'room'),
+					BTWithdrawFromStructures('room', [StructureStorage], 'energy'),
+					new Sequence([
+						BTTranferToStructures('room', [StructureExtension, StructureSpawn], 'energy'),
+						BTTranferToStructures('room', [StructureTower], 'energy'),
+						new GetRoom('E33N38', 'room'),
+						BTConstruct('room'),
+						BTRepairStructures('room', [StructureRoad, StructureContainer, StructureRampart, StructureWall]),
+						new GetRoom('E32N38', 'room'),
+						BTConstruct('room'),
+						BTRepairStructures('room', [StructureRoad, StructureContainer, StructureRampart, StructureWall]),
+						BTUpgrade()
+					])
+				])),
+			// new Sequence([
+			// 	new GetRoom('E33N38', 'room'),
+			// 	new GetPositionFromFlag('Controller', 'controllerPos'),
+			// 	new GetTargetAtPosition('structure', 'controller', 'controllerPos'),
+			// 	new SetPosition(new RoomPosition(1, 10, 'E33N38'), 'position'),
+			// 	new RepeatUntilFail(new Sequence([
+			// 		new WalkTowardsPosition('position', { range: 1 }),
+			// 		new AlwaysSucceed(new UpgradeController('controller')),
+			// 		new Wait(1)
+			// 	])),
+			// ])).debug(),
 			spawnMe: true
 		},
 		krud: {
@@ -327,7 +313,7 @@ const structure = {
 			body: ['work', 'work', 'work', 'work', 'work', 'work', 'carry', 'move'],
 			behaviour: new BehaviourTree(
 				BTHarvestThenDrop('Source2')
-			).debug(),
+			),
 			spawnMe: true
 		},
 		stud: {
@@ -360,6 +346,8 @@ export const loop = ErrorMapper.wrapLoop(() => {
 	// Logger.behaviour.setAgentsFilter([Game.creeps.com]);
 
 	Logger.printTickStart();
+
+	// console.log(Game.creeps.bob.pos.getRangeTo(Game.creeps.stud.pos));
 
 	for (const [spawnName, spawnData] of Object.entries(structure)) {
 		for (const [creepName, creepData] of Object.entries(spawnData)) {

@@ -3,7 +3,7 @@ import { Blackboard } from "./Blackboard";
 
 export class UpgradeController extends BTNode {
 
-	constructor(public targetAlias: string = 'target') {
+	constructor(public targetAlias: string) {
 		super();
 	}
 
@@ -17,18 +17,13 @@ export class UpgradeController extends BTNode {
 
 		const target = blackboard.getTarget<StructureController>(this.targetAlias);
 		if (!target) {
-			console.log('Failed to init UpgradeController: Missing target')
 			return BTResult.FAILURE;
 		}
 
 		const result = blackboard.agent.upgradeController(target);
 
 		if (result === OK) {
-			if (blackboard.agent.store.energy > 0) {
-				return BTResult.RUNNING;
-			} else {
-				return BTResult.SUCCESS;
-			}
+			return BTResult.SUCCESS;
 		} else {
 			return BTResult.FAILURE;
 		}

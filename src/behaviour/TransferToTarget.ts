@@ -3,14 +3,14 @@ import { Blackboard } from "./Blackboard";
 
 export class TransferToTarget extends BTNode {
 
-	transferredCount: number = 0;
+	// transferredCount: number = 0;
 
-	constructor(public type: ResourceConstant, public targetAlias: string = 'target', public amount?: number) {
+	constructor(public type: ResourceConstant, public targetAlias: string, public amount?: number) {
 		super();
 	}
 
 	init(blackboard: Blackboard): void {
-		this.transferredCount = 0;
+		// this.transferredCount = 0;
 	}
 
 	run(blackboard: Blackboard): BTResult {
@@ -20,33 +20,29 @@ export class TransferToTarget extends BTNode {
 
 		const target = blackboard.getTarget<Creep | PowerCreep | Structure<StructureConstant>>(this.targetAlias);
 		if (!target) {
-			console.log('Failed to init TransferToTarget: Missing target')
 			return BTResult.FAILURE;
 		}
 
-		const oldCount = blackboard.agent.store[this.type];
+		// const oldCount = blackboard.agent.store[this.type];
 
-		const remaining = this.amount ? this.amount - this.transferredCount : undefined;
+		// const remaining = this.amount ? this.amount - this.transferredCount : undefined;
 
-		const result = blackboard.agent.transfer(target, this.type, remaining);
-		const newCount = blackboard.agent.store[this.type];
+		const result = blackboard.agent.transfer(target, this.type, this.amount);
+		// const newCount = blackboard.agent.store[this.type];
 
-		const change = newCount - oldCount;
+		// const change = newCount - oldCount;
 
-		this.transferredCount += change;
+		// this.transferredCount += change;
 
 		if (result === OK) {
-			if (!this.amount || this.transferredCount < this.amount) {
-				return BTResult.RUNNING;
-			} else {
-				return BTResult.SUCCESS;
-			}
+			// if (!this.amount || this.transferredCount < this.amount) {
+			// 	return BTResult.RUNNING;
+			// } else {
+			return BTResult.SUCCESS;
+			// }
 		}
 
-		if (result === ERR_FULL) {
-			return BTResult.SUCCESS;
-		} else {
-			return BTResult.FAILURE;
-		}
+		return BTResult.FAILURE;
+
 	}
 }
