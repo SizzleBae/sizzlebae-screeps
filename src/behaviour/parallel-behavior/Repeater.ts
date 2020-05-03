@@ -27,7 +27,6 @@ export class Repeater extends BTNodeDecorator {
 			this.lastTick = Game.time;
 		}
 
-		console.log('repeated!!!-');
 		this.child.state = BTState.EXECUTING;
 		this.child.run(blackboard, result => {
 			this.child.state = result as number;

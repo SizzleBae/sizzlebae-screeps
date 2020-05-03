@@ -58,7 +58,7 @@ export class ActionWalkTowards extends BTNode {
 		}
 
 		this.cachedPath = from.findPathTo(to, this.options);
-		this.cachedPath.forEach(path => Game.rooms[from.roomName].visual.circle(path.x, path.y));
+		// this.cachedPath.forEach(path => Game.rooms[from.roomName].visual.circle(path.x, path.y));
 		return this.cachedPath;
 
 	}

@@ -8,10 +8,12 @@ export class BehaviourTree extends BTNodeDecorator {
 	readonly blackboard: Blackboard = new Blackboard();
 
 	run(): void {
+		this.state = BTState.EXECUTING;
 		this.child.state = BTState.EXECUTING;
-		console.log('asdasdasdasd started tree!!!');
+
 		this.child.run(this.blackboard, result => {
 			this.child.state = result as number;
+			this.state = result as number;
 		});
 	}
 

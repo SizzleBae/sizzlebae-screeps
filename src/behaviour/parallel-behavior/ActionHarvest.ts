@@ -23,7 +23,8 @@ export class ActionHarvest extends BTNode {
 		const result = agent.harvest(target);
 
 		if (result === OK) {
-			TimeFlow.submitAction(Game.time + 1, () => callback(BTResult.SUCCESS));
+			callback(BTResult.SUCCESS);
+			// TimeFlow.submitAction(Game.time + 1, () => callback(BTResult.SUCCESS));
 		} else {
 			callback(BTResult.FAILURE);
 		}
