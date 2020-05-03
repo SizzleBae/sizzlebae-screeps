@@ -16,7 +16,7 @@ export class BehaviourTree extends BTNodeDecorator {
 		return this;
 	}
 
-	convertNodeToDebug(node: BTNode): DebugDecorator {
+	private convertNodeToDebug(node: BTNode): DebugDecorator {
 		if (node instanceof BTNodeComposite) {
 			node.children = node.children.map(child => this.convertNodeToDebug(child));
 		}

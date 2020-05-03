@@ -1,7 +1,7 @@
 import { ErrorMapper } from 'utils/ErrorMapper';
 import { BehaviourTree } from 'behaviour/BehaviourTree';
 import { Sequence } from 'behaviour/Sequence';
-import { SetPositionFromFlag as GetPositionFromFlag } from 'behaviour/GetPositionFromFlag';
+import { GetPositionFromFlag as GetPositionFromFlag } from 'behaviour/GetPositionFromFlag';
 import { WalkToPosition } from 'behaviour/WalkToPosition';
 import { GetTargetAtPosition } from 'behaviour/GetTargetAtPosition';
 import { HarvestTarget } from 'behaviour/HarvestTarget';

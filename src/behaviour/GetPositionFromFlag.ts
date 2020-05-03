@@ -1,7 +1,7 @@
 import { BTNode, BTResult } from "./BTNode";
 import { Blackboard } from "./Blackboard";
 
-export class SetPositionFromFlag extends BTNode {
+export class GetPositionFromFlag extends BTNode {
 	constructor(public flagName: string, public positionAlias: string = 'position') {
 		super();
 
