@@ -1,0 +1,28 @@
+import { BTNode, BTResult } from "./BTNode";
+import { Blackboard } from "./Blackboard";
+import { Utils } from "utils/Utils";
+
+export class ConditionInRange extends BTNode {
+	constructor(public fromAlias: string, public toAlias: string, public range: number) {
+		super();
+	}
+
+	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
+		const from = Utils.extractPosition(blackboard[this.fromAlias]);
+		if (!from) {
+			return callback(BTResult.PANIC);
+		}
+
+		const to = Utils.extractPosition(blackboard[this.toAlias]);
+		if (!to) {
+			return callback(BTResult.PANIC);
+		}
+
+		if (from.getRangeTo(to) <= this.range) {
+			callback(BTResult.SUCCESS);
+		} else {
+			callback(BTResult.FAILURE);
+		}
+	}
+
+}

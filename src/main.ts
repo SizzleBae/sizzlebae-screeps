@@ -32,6 +32,7 @@ import { AlwaysSucceed } from 'behaviour/AlwaysSucceed';
 import { Wait } from 'behaviour/Wait';
 import { GetRoom } from 'behaviour/GetRoom';
 import { AttackTarget } from 'behaviour/AttackTarget';
+import { TimeFlow } from 'utils/TimeFlow';
 
 export type ColonyStructure = Record<string,
 	Record<string, {
@@ -164,7 +165,6 @@ const BTRepairStructures = (roomAlias: string, structureTypes: (_Constructor<Str
 				new GetAgentAsTarget('agent'),
 				new HasUsedCapacity('agent', 'energy'),
 				new PopStackToTarget('maintainable', 'maintainables'),
-				new SortStackClosestFirst('agent', 'maintainables'),
 				new AlwaysSucceed(new Sequence([
 					new GetTargetPosition('maintainable'),
 					new WalkToPosition('position', { range: 3 }),
@@ -235,27 +235,15 @@ const BTHarvest = (sourceFlag: string) => {
 
 const structure = {
 	Spawn1: {
-		easy: {
-			body: ['work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'carry', 'carry', 'carry', 'move'],
-			behaviour: new BehaviourTree(new Sequence([
-				new GetAgentAsTarget('agent'),
-				new GetTargetRoom('room', 'agent'),
-				BTWithdrawFromStructures('room', [StructureStorage], 'energy'),
-				new Sequence([
-					BTConstruct(),
-					BTUpgrade()
-				])
-			])),
-			spawnMe: false
-		},
 		ddss: {
-			body: ['move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'carry', 'work', 'move', 'work', 'work', 'move', 'work', 'work'],
+			body: ['work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'work', 'carry', 'move'],
 			behaviour: new BehaviourTree(new Sequence([
 				new GetAgentAsTarget('agent'),
+				new GetPositionFromFlag('Upgrader1', 'position'),
+				new WalkToPosition('position', { range: 0 }),
 				new GetTargetRoom('room', 'agent'),
 				BTWithdrawFromStructures('room', [StructureStorage], 'energy'),
 				new Sequence([
-					BTConstruct(),
 					BTUpgrade()
 				])
 			])),
@@ -327,7 +315,7 @@ const structure = {
 			body: ['work', 'work', 'work', 'work', 'work', 'work', 'carry', 'move'],
 			behaviour: new BehaviourTree(
 				BTHarvestThenDrop('Source2')
-			).debug(),
+			),
 			spawnMe: true
 		},
 		stud: {
@@ -354,6 +342,8 @@ const towerBehaviour = new BehaviourTree(
 	]))
 
 export const loop = ErrorMapper.wrapLoop(() => {
+	TimeFlow.executeTick(Game.time);
+
 	// console.log(`Current game tick is ${Game.time}`);
 	Logger.verbosity = LogVerbosity.DEBUG;
 

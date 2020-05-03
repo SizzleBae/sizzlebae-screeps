@@ -1,6 +1,6 @@
 import { Blackboard } from "./Blackboard";
 import { BTResult, BTNode, BTNodeComposite, BTNodeDecorator } from "./BTNode";
-import { DebugDecorator } from "./DebugDecorator";
+// import { DebugDecorator } from "./DebugDecorator";
 
 export class BehaviourTree {
 	blackboard?: Blackboard;
@@ -23,22 +23,22 @@ export class BehaviourTree {
 		return this.lastResult;
 	}
 
-	debug(): this {
-		this.root = this.convertNodeToDebug(this.root);
+	// debug(): this {
+	// 	this.root = this.convertNodeToDebug(this.root);
 
-		return this;
-	}
+	// 	return this;
+	// }
 
-	convertNodeToDebug(node: BTNode): DebugDecorator {
-		if (node instanceof BTNodeComposite) {
-			node.children = node.children.map(child => this.convertNodeToDebug(child));
-			// node.children = node.children.map(child => new DebugDecorator(child));
-		}
-		else if (node instanceof BTNodeDecorator) {
-			node.child = this.convertNodeToDebug(node.child);
-			// node.child = new DebugDecorator(node);
-		}
+	// convertNodeToDebug(node: BTNode): DebugDecorator {
+	// 	if (node instanceof BTNodeComposite) {
+	// 		node.children = node.children.map(child => this.convertNodeToDebug(child));
+	// 		// node.children = node.children.map(child => new DebugDecorator(child));
+	// 	}
+	// 	else if (node instanceof BTNodeDecorator) {
+	// 		node.child = this.convertNodeToDebug(node.child);
+	// 		// node.child = new DebugDecorator(node);
+	// 	}
 
-		return new DebugDecorator(node);
-	}
+	// 	return new DebugDecorator(node);
+	// }
 }

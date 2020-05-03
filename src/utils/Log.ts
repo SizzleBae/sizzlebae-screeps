@@ -1,7 +1,3 @@
-import { BTResult, BTNode, BTNodeComposite, BTNodeDecorator } from "behaviour/BTNode";
-import { Blackboard, Agent } from "behaviour/Blackboard";
-import { DebugDecorator } from "behaviour/DebugDecorator";
-
 export enum LogVerbosity {
 	MESSAGE, WARNING, ERROR, DEBUG
 }
@@ -10,48 +6,49 @@ export interface Log {
 }
 
 export class BehaviorLog implements Log {
-	private agentsIdFilter: string[] = [];
 
-	private indentLevel = 0;
+	// private agentsIdFilter: string[] = [];
 
-	beginNode(node: DebugDecorator) {
-		const indent = Array(this.indentLevel).fill('| ').join('');
+	// private indentLevel = 0;
 
-		if (node.child instanceof BTNodeComposite || node.child instanceof BTNodeDecorator) {
-			Logger.print(`${indent}${node.child.constructor.name}`, LogVerbosity.DEBUG);
-			this.indentLevel++;
-		}
-	}
+	// beginNode(node: DebugDecorator) {
+	// 	const indent = Array(this.indentLevel).fill('| ').join('');
 
-	endNode(node: DebugDecorator, result: BTResult) {
-		if (node.child instanceof BTNodeComposite || node.child instanceof BTNodeDecorator) {
-			this.indentLevel--;
-		}
+	// 	if (node.child instanceof BTNodeComposite || node.child instanceof BTNodeDecorator) {
+	// 		Logger.print(`${indent}${node.child.constructor.name}`, LogVerbosity.DEBUG);
+	// 		this.indentLevel++;
+	// 	}
+	// }
 
-		const indent = Array(this.indentLevel).fill('| ').join('');
-		Logger.print(`${indent}${node.child.constructor.name} - ${this.resultToString(result).toUpperCase()}`, LogVerbosity.DEBUG);
-	}
+	// endNode(node: DebugDecorator, result: BTResult) {
+	// 	if (node.child instanceof BTNodeComposite || node.child instanceof BTNodeDecorator) {
+	// 		this.indentLevel--;
+	// 	}
 
-	agentToString(agent: Agent): string {
-		if (agent instanceof Creep) {
-			return agent.name;
-		} else if (agent instanceof StructureTower) {
-			return `tower-${agent.id}`
-		}
+	// 	const indent = Array(this.indentLevel).fill('| ').join('');
+	// 	Logger.print(`${indent}${node.child.constructor.name} - ${this.resultToString(result).toUpperCase()}`, LogVerbosity.DEBUG);
+	// }
 
-		return 'unknown-agent-type';
-	}
+	// agentToString(agent: Agent): string {
+	// 	if (agent instanceof Creep) {
+	// 		return agent.name;
+	// 	} else if (agent instanceof StructureTower) {
+	// 		return `tower-${agent.id}`
+	// 	}
 
-	resultToString(result: BTResult): string {
-		switch (result) {
-			case BTResult.FAILURE:
-				return 'failure'
-			case BTResult.SUCCESS:
-				return 'success'
-			case BTResult.RUNNING:
-				return 'running'
-		}
-	}
+	// 	return 'unknown-agent-type';
+	// }
+
+	// resultToString(result: BTResult): string {
+	// 	switch (result) {
+	// 		case BTResult.FAILURE:
+	// 			return 'failure'
+	// 		case BTResult.SUCCESS:
+	// 			return 'success'
+	// 		case BTResult.RUNNING:
+	// 			return 'running'
+	// 	}
+	// }
 }
 
 export class Logger {
