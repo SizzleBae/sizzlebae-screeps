@@ -9,24 +9,23 @@ export class ActionTransfer extends BTNode {
 		super();
 	}
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
+	run(blackboard: Blackboard): BTResult {
 		const agent = Utils.identify<Creep>(blackboard[this.agentIdAlias], [Creep]);
 		if (!agent) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
 		const target = Utils.identify<Creep | Structure | PowerCreep>(blackboard[this.targetIdAlias], [Creep, Structure, PowerCreep]);
 		if (!target) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
 		const result = agent.transfer(target, this.resourceType, this.amount);
 
 		if (result === OK) {
-			callback(BTResult.SUCCESS);
-			// TimeFlow.submitAction(Game.time + 1, () => callback(BTResult.SUCCESS));
+			return BTResult.SUCCESS;
 		} else {
-			callback(BTResult.FAILURE);
+			return BTResult.FAILURE;
 		}
 	}
 }

@@ -8,19 +8,18 @@ export class DataObjectRoom extends BTNode {
 		super();
 	}
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
+	run(blackboard: Blackboard): BTResult {
 
 		const object = Utils.identify<RoomObject>(blackboard[this.objectIdAlias], [RoomObject]);
 		if (!object) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
 		const room = object.room;
 		if (room) {
 			blackboard[this.roomAlias] = room;
-			callback(BTResult.SUCCESS);
-		} else {
-			callback(BTResult.FAILURE);
+			return BTResult.SUCCESS;
 		}
+		return BTResult.FAILURE;
 	}
 }

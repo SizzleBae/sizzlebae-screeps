@@ -1,21 +1,14 @@
-import { BTNode, BTResult, BTNodeDecorator, BTState } from "./BTNode";
+import { BTResult, BTNodeDecorator } from "./BTNode";
 import { Blackboard } from "./Blackboard";
-import { Logger, LogVerbosity } from "utils/Log";
-import { Utils } from "utils/Utils";
+import { Logger } from "utils/Log";
 
 export class DebugDecorator extends BTNodeDecorator {
 
-	private executionCount = 0;
-
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
-		this.child.state = BTState.EXECUTING;
-		Logger.print(`${this.child.constructor.name} - ${Utils.btStateToString(this.child.state)} - ${this.executionCount}`, LogVerbosity.DEBUG);
-		this.child.run(blackboard, result => {
-			this.child.state = result as number;
-			callback(result);
-			Logger.print(`${this.child.constructor.name} - ${Utils.btStateToString(this.child.state)} - ${this.executionCount}`, LogVerbosity.DEBUG);
-			this.executionCount++;
-		})
+	run(blackboard: Blackboard): BTResult {
+		Logger.behaviour.beginNode(this);
+		const result = this.child.run(blackboard);
+		Logger.behaviour.endNode(this, result);
+		return result;
 	}
 
 }

@@ -1,5 +1,3 @@
-import { BTState } from "behaviour/parallel-behavior/BTNode";
-
 export class Utils {
 	static extractPosition(holder: unknown): RoomPosition | undefined {
 		if (holder instanceof RoomPosition) {
@@ -33,20 +31,4 @@ export class Utils {
 		return object;
 	}
 
-	static btStateToString(state: BTState): string {
-		switch (state) {
-			case BTState.CANCELLED:
-				return 'CANCELLED';
-			case BTState.EXECUTING:
-				return 'EXECUTING';
-			case BTState.SUCCEEDED:
-				return 'SUCCEEDED';
-			case BTState.FAILED:
-				return 'FAILED';
-			case BTState.PANICKED:
-				return 'PANICKED';
-			case BTState.IDLE:
-				return 'IDLE';
-		}
-	}
 }

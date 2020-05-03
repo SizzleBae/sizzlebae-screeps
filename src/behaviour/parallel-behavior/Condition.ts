@@ -7,11 +7,10 @@ export class Condition extends BTNode {
 		super();
 	}
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
+	run(blackboard: Blackboard): BTResult {
 		if (this.predicate(blackboard)) {
-			callback(BTResult.SUCCESS);
-		} else {
-			callback(BTResult.FAILURE);
+			return BTResult.SUCCESS;
 		}
+		return BTResult.FAILURE;
 	}
 }

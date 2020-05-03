@@ -10,11 +10,11 @@ export class ConditionCapacity<ResourceType extends ResourceConstant> extends BT
 		super();
 	}
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
+	run(blackboard: Blackboard): BTResult {
 		const target = Utils.identify<{ store: Store<ResourceType, false> }>(blackboard[this.targetIdAlias]);
 
 		if (!target || !target.store) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
 		let capacity: number | null = null;
@@ -31,7 +31,7 @@ export class ConditionCapacity<ResourceType extends ResourceConstant> extends BT
 		}
 
 		if (capacity === null) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
 		let result: boolean = false;
@@ -48,10 +48,9 @@ export class ConditionCapacity<ResourceType extends ResourceConstant> extends BT
 		}
 
 		if (result) {
-			callback(BTResult.SUCCESS);
-		} else {
-			callback(BTResult.FAILURE);
+			return BTResult.SUCCESS;
 		}
+		return BTResult.FAILURE;
 	}
 
 }

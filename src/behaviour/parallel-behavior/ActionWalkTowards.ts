@@ -12,45 +12,58 @@ export class ActionWalkTowards extends BTNode {
 		super();
 	}
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
-
+	run(blackboard: Blackboard): BTResult {
 		const position = Utils.extractPosition(blackboard[this.positionAlias]);
 		if (!position) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
-		this.attemptMove(blackboard[this.agentIdAlias] as Id<Creep>, position, callback);
-	}
-
-	private attemptMove(agentId: Id<Creep>, position: RoomPosition, callback: (result: BTResult) => void) {
-		const agent = Utils.identify<Creep>(agentId, [Creep]);
+		const agent = Utils.identify<Creep>(blackboard[this.agentIdAlias], [Creep]);
 		if (!agent) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
 		const path = this.findPath(agent.pos, position);
 		const result = agent.moveByPath(path);
-		// const result = refreshedAgent.moveTo(position, { visualizePathStyle: {} });
 
-		this.agentLastPos = agent.pos;
 		if (result === OK) {
-			TimeFlow.submitAction(Game.time + 1, () => {
-				const agent = Utils.identify<Creep>(agentId, [Creep]);
-				if (!agent) {
-					callback(BTResult.PANIC);
-				} else if (agent.pos.isEqualTo(this.agentLastPos)) {
-					callback(BTResult.FAILURE);
-				} else {
-					callback(BTResult.SUCCESS);
-				}
-			});
-		}
-		else if (result === ERR_TIRED) {
-			TimeFlow.submitAction(Game.time + 1, () => this.attemptMove(agentId, position, callback));
+			return BTResult.SUCCESS
+		} else if (result === ERR_TIRED) {
+			return BTResult.RUNNING;
 		} else {
-			callback(BTResult.FAILURE);
+			return BTResult.FAILURE;
 		}
 	}
+
+	// private attemptMove(agentId: Id<Creep>, position: RoomPosition) {
+	// 	const agent = Utils.identify<Creep>(agentId, [Creep]);
+	// 	if (!agent) {
+	// 		return callback(BTResult.PANIC);
+	// 	}
+
+	// 	const path = this.findPath(agent.pos, position);
+	// 	const result = agent.moveByPath(path);
+	// 	// const result = refreshedAgent.moveTo(position, { visualizePathStyle: {} });
+
+	// 	this.agentLastPos = agent.pos;
+	// 	if (result === OK) {
+	// 		TimeFlow.submitAction(Game.time + 1, () => {
+	// 			const agent = Utils.identify<Creep>(agentId, [Creep]);
+	// 			if (!agent) {
+	// 				callback(BTResult.PANIC);
+	// 			} else if (agent.pos.isEqualTo(this.agentLastPos)) {
+	// 				callback(BTResult.FAILURE);
+	// 			} else {
+	// 				callback(BTResult.SUCCESS);
+	// 			}
+	// 		});
+	// 	}
+	// 	else if (result === ERR_TIRED) {
+	// 		TimeFlow.submitAction(Game.time + 1, () => this.attemptMove(agentId, position, callback));
+	// 	} else {
+	// 		callback(BTResult.FAILURE);
+	// 	}
+	// }
 
 	private findPath(from: RoomPosition, to: RoomPosition): PathStep[] {
 		if (this.cachedPath) {

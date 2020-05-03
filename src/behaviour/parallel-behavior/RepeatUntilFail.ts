@@ -1,26 +1,19 @@
-import { BTResult, BTNodeDecorator, BTState } from "./BTNode";
+import { BTResult, BTNodeDecorator } from "./BTNode";
 import { Blackboard } from "./Blackboard";
 
 export class RepeatUntilFail extends BTNodeDecorator {
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
+	run(blackboard: Blackboard): BTResult {
 
-		this.repeat(blackboard, callback);
+		let result: BTResult;
+		do {
+			result = this.child.run(blackboard);
+		}
+		while (result === BTResult.SUCCESS)
 
+		if (result === BTResult.FAILURE) {
+			return BTResult.SUCCESS;
+		}
+		return result;
 	}
-
-	private repeat(blackboard: Blackboard, callback: (result: BTResult) => void) {
-		this.child.state = BTState.EXECUTING;
-		this.child.run(blackboard, result => {
-			this.child.state = result as number;
-			if (result === BTResult.SUCCESS) {
-				this.repeat(blackboard, callback)
-			} else if (result === BTResult.FAILURE) {
-				callback(BTResult.SUCCESS);
-			} else {
-				callback(BTResult.PANIC);
-			}
-		})
-	}
-
 }

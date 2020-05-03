@@ -1,6 +1,5 @@
-import { BTNode, BTResult, BTNodeDecorator, BTState } from "./BTNode";
+import { BTNode, BTResult, BTNodeDecorator } from "./BTNode";
 import { Blackboard } from "./Blackboard";
-import { TimeFlow } from "../../utils/TimeFlow";
 
 export class Repeater extends BTNodeDecorator {
 
@@ -11,27 +10,24 @@ export class Repeater extends BTNodeDecorator {
 		super(child);
 	}
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
-		this.repeat(blackboard, callback);
+	run(blackboard: Blackboard): BTResult {
+		if (this.lastTick !== Game.time) {
+			this.lastTick = Game.time;
+			this.repeats = 0;
+		}
+		return this.doRepeat(blackboard);
 	}
 
-	private repeat(blackboard: Blackboard, callback: (result: BTResult) => void) {
-		if (Game.time === this.lastTick) {
-			this.repeats++;
+	private doRepeat(blackboard: Blackboard): BTResult {
+		let result = this.child.run(blackboard);
 
-			if (this.repeats >= this.maxPerTick) {
-				TimeFlow.submitAction(Game.time + 1, () => this.repeat(blackboard, callback));
-				return;
+		if (result !== BTResult.PANIC && result !== BTResult.RUNNING) {
+			if (this.repeats < this.maxPerTick) {
+				this.repeats++;
+				result = this.doRepeat(blackboard);
 			}
-		} else {
-			this.lastTick = Game.time;
 		}
 
-		this.child.state = BTState.EXECUTING;
-		this.child.run(blackboard, result => {
-			this.child.state = result as number;
-			this.repeat(blackboard, callback)
-		})
+		return result;
 	}
-
 }

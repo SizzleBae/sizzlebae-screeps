@@ -1,3 +1,6 @@
+import { DebugDecorator } from "behaviour/parallel-behavior/DebugDecorater";
+import { BTNodeComposite, BTResult, BTNodeDecorator } from "behaviour/parallel-behavior/BTNode";
+
 export enum LogVerbosity {
 	MESSAGE, WARNING, ERROR, DEBUG
 }
@@ -9,25 +12,25 @@ export class BehaviorLog implements Log {
 
 	// private agentsIdFilter: string[] = [];
 
-	// private indentLevel = 0;
+	private indentLevel = 0;
 
-	// beginNode(node: DebugDecorator) {
-	// 	const indent = Array(this.indentLevel).fill('| ').join('');
+	beginNode(node: DebugDecorator) {
+		const indent = Array(this.indentLevel).fill('| ').join('');
 
-	// 	if (node.child instanceof BTNodeComposite || node.child instanceof BTNodeDecorator) {
-	// 		Logger.print(`${indent}${node.child.constructor.name}`, LogVerbosity.DEBUG);
-	// 		this.indentLevel++;
-	// 	}
-	// }
+		if (node.child instanceof BTNodeComposite || node.child instanceof BTNodeDecorator) {
+			Logger.print(`${indent}${node.child.constructor.name}`, LogVerbosity.DEBUG);
+			this.indentLevel++;
+		}
+	}
 
-	// endNode(node: DebugDecorator, result: BTResult) {
-	// 	if (node.child instanceof BTNodeComposite || node.child instanceof BTNodeDecorator) {
-	// 		this.indentLevel--;
-	// 	}
+	endNode(node: DebugDecorator, result: BTResult) {
+		if (node.child instanceof BTNodeComposite || node.child instanceof BTNodeDecorator) {
+			this.indentLevel--;
+		}
 
-	// 	const indent = Array(this.indentLevel).fill('| ').join('');
-	// 	Logger.print(`${indent}${node.child.constructor.name} - ${this.resultToString(result).toUpperCase()}`, LogVerbosity.DEBUG);
-	// }
+		const indent = Array(this.indentLevel).fill('| ').join('');
+		Logger.print(`${indent}${node.child.constructor.name} - ${this.resultToString(result).toUpperCase()}`, LogVerbosity.DEBUG);
+	}
 
 	// agentToString(agent: Agent): string {
 	// 	if (agent instanceof Creep) {
@@ -39,16 +42,18 @@ export class BehaviorLog implements Log {
 	// 	return 'unknown-agent-type';
 	// }
 
-	// resultToString(result: BTResult): string {
-	// 	switch (result) {
-	// 		case BTResult.FAILURE:
-	// 			return 'failure'
-	// 		case BTResult.SUCCESS:
-	// 			return 'success'
-	// 		case BTResult.RUNNING:
-	// 			return 'running'
-	// 	}
-	// }
+	resultToString(result: BTResult): string {
+		switch (result) {
+			case BTResult.FAILURE:
+				return 'failure'
+			case BTResult.SUCCESS:
+				return 'success'
+			case BTResult.RUNNING:
+				return 'running'
+			case BTResult.PANIC:
+				return 'panic'
+		}
+	}
 }
 
 export class Logger {

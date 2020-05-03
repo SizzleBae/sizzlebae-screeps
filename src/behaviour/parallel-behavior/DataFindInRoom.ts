@@ -7,20 +7,19 @@ export class DataFindInRoom<T extends FindConstant> extends BTNode {
 		super();
 	}
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
+	run(blackboard: Blackboard): BTResult {
 
 		const room = blackboard[this.roomAlias];
 		if (!room || !(room instanceof Room)) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
 		const result = room.find(this.type, this.filter ? { filter: this.filter } : undefined).map((result: any) => result.id ? result.id : result);
 		blackboard[this.resultAlias] = result;
 
 		if (result.length > 0) {
-			callback(BTResult.SUCCESS);
-		} else {
-			callback(BTResult.FAILURE);
+			return BTResult.SUCCESS;
 		}
+		return BTResult.FAILURE;
 	}
 }

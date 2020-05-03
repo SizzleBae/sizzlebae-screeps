@@ -7,22 +7,20 @@ export class ConditionInRange extends BTNode {
 		super();
 	}
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
+	run(blackboard: Blackboard): BTResult {
 		const from = Utils.extractPosition(blackboard[this.fromAlias]);
 		if (!from) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
 		const to = Utils.extractPosition(blackboard[this.toAlias]);
 		if (!to) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
 		if (from.getRangeTo(to) <= this.range) {
-			callback(BTResult.SUCCESS);
-		} else {
-			callback(BTResult.FAILURE);
+			return BTResult.SUCCESS;
 		}
+		return BTResult.FAILURE;
 	}
-
 }

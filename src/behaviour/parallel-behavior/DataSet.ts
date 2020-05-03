@@ -7,9 +7,9 @@ export class DataSet<T> extends BTNode {
 		super();
 	}
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
+	run(blackboard: Blackboard): BTResult {
 		blackboard[this.alias] = this.data;
 
-		callback(BTResult.SUCCESS);
+		return BTResult.SUCCESS;
 	}
 }

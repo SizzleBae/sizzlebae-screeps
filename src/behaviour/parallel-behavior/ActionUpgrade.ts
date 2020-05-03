@@ -9,24 +9,23 @@ export class ActionUpgrade extends BTNode {
 		super();
 	}
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
+	run(blackboard: Blackboard): BTResult {
 		const agent = Utils.identify<Creep>(blackboard[this.agentIdAlias], [Creep]);
 		if (!agent) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
 		const target = Utils.identify<StructureController>(blackboard[this.controllerIdAlias], [StructureController]);
 		if (!target) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
 		const result = agent.upgradeController(target);
 
 		if (result === OK) {
-			// TimeFlow.submitAction(Game.time + 1, () => callback(BTResult.SUCCESS));
-			callback(BTResult.SUCCESS);
+			return BTResult.SUCCESS;
 		} else {
-			callback(BTResult.FAILURE);
+			return BTResult.FAILURE;
 		}
 	}
 }

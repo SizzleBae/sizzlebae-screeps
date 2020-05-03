@@ -1,24 +1,13 @@
-import { BTNodeDecorator, BTResult, BTState, BTNode, BTNodeComposite } from "./BTNode";
+import { BTNodeDecorator, BTResult, BTNode, BTNodeComposite } from "./BTNode";
 import { Blackboard } from "./Blackboard";
-import { BTLogger } from "./BTLogger";
 import { DebugDecorator } from "./DebugDecorater";
 
 export class BehaviourTree extends BTNodeDecorator {
 
 	readonly blackboard: Blackboard = new Blackboard();
 
-	run(): void {
-		this.state = BTState.EXECUTING;
-		this.child.state = BTState.EXECUTING;
-
-		this.child.run(this.blackboard, result => {
-			this.child.state = result as number;
-			this.state = result as number;
-		});
-	}
-
-	logState() {
-		this.accept(new BTLogger());
+	run(): BTResult {
+		return this.child.run(this.blackboard);
 	}
 
 	debug(): this {

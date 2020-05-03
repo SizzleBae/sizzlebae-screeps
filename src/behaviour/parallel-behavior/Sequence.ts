@@ -1,39 +1,29 @@
-import { BTNodeComposite, BTResult, BTState } from "./BTNode";
+import { BTNodeComposite, BTResult } from "./BTNode";
 import { Blackboard } from "./Blackboard";
 
 export class Sequence extends BTNodeComposite {
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
-		this.children.forEach(child => child.state = BTState.IDLE);
+	private currentIndex = 0;
 
-		this.doNext(0, blackboard, callback);
-	}
+	run(blackboard: Blackboard): BTResult {
+		for (; this.currentIndex < this.children.length; this.currentIndex++) {
+			const currentChild = this.children[this.currentIndex];
 
-	private doNext(index: number, blackboard: Blackboard, callback: (result: BTResult) => void) {
-		if (index === this.children.length) {
-			callback(BTResult.SUCCESS);
-			return;
+			const result = currentChild.run(blackboard);
+
+			switch (result) {
+				case BTResult.FAILURE:
+					this.currentIndex = 0;
+					return BTResult.FAILURE
+				case BTResult.PANIC:
+					this.currentIndex = 0;
+					return BTResult.PANIC
+				case BTResult.RUNNING:
+					return BTResult.RUNNING;
+			}
 		}
 
-		const child = this.children[index];
-		child.state = BTState.EXECUTING;
-		child.run(blackboard, result => {
-			if (result === BTResult.SUCCESS) {
-				child.state = BTState.SUCCEEDED;
-				this.doNext(index + 1, blackboard, callback);
-			} else {
-				if (result === BTResult.PANIC) {
-					child.state = BTState.PANICKED;
-				} else if (result === BTResult.FAILURE) {
-					child.state = BTState.FAILED;
-				}
-				for (let i = index + 1; i < this.children.length; i++) {
-					this.children[i].state = BTState.CANCELLED;
-				}
-
-				callback(result);
-			}
-		})
+		this.currentIndex = 0;
+		return BTResult.SUCCESS;
 	}
-
 }

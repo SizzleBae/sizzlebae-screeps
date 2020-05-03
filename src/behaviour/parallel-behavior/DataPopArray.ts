@@ -7,19 +7,18 @@ export class DataPopArray extends BTNode {
 		super();
 	}
 
-	run(blackboard: Blackboard, callback: (result: BTResult) => void): void {
+	run(blackboard: Blackboard): BTResult {
 		const array = blackboard[this.arrayAlias];
 		if (!array || !(array instanceof Array)) {
-			return callback(BTResult.PANIC);
+			return BTResult.PANIC;
 		}
 
 		const popped = array.pop();
 
 		if (popped) {
 			blackboard[this.poppedAlias] = popped;
-			callback(BTResult.SUCCESS);
-		} else {
-			callback(BTResult.FAILURE);
+			return BTResult.SUCCESS;
 		}
+		return BTResult.FAILURE;
 	}
 }
