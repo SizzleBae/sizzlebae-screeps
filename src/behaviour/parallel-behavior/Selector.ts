@@ -24,6 +24,6 @@ export class Selector extends BTNodeComposite {
 		}
 
 		this.currentIndex = 0;
-		return BTResult.SUCCESS;
+		return BTResult.FAILURE;
 	}
 }

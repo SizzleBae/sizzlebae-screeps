@@ -17,6 +17,9 @@ export class ActionWait extends BTNode {
 				return BTResult.SUCCESS;
 			}
 		} else {
+			if (this.ticks === 0) {
+				return BTResult.SUCCESS;
+			}
 			this.waitUntil = Game.time + this.ticks;
 		}
 		return BTResult.RUNNING;
